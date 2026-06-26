@@ -193,6 +193,7 @@
       <div class="check-actions">
         <button class="check-lnk" id="checkAll">Select all</button>
         <button class="check-lnk" id="uncheckAll">Deselect all</button>
+        <input type="text" id="projFilter" placeholder="Filter…" autocomplete="off" style="margin-left:auto;padding:3px 8px;font-size:12px;border:1px solid var(--line2);border-radius:5px;color:var(--ink);background:var(--paper);width:140px">
       </div>
       <div class="proj-checks" id="projectCheckboxes"></div>
     </div>
@@ -215,11 +216,6 @@
             <input type="color" id="brandAccentPicker" value="#2d6a5c">
             <input type="text" id="brandAccent" placeholder="#2d6a5c" value="#2d6a5c">
           </div>
-        </label>
-        <label class="field">
-          <span>Logo (optional)</span>
-          <input type="file" id="brandLogo" accept="image/png,image/jpeg,image/svg+xml">
-          <span class="field-note">PNG, JPG, or SVG — embeds into the archive file.</span>
         </label>
       </div>
     </div>
@@ -265,7 +261,7 @@ __FAVICON_TAG__
   .masthead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:26px 0 0}
   .logo{height:52px;width:auto;display:block;max-width:240px;object-fit:contain;object-position:right top;flex-shrink:0}
   .brand{display:flex;flex-direction:column;gap:5px}
-  .wordmark{font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--ink);line-height:1.05}
+  .wordmark{font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--teal);line-height:1.05}
   .brand-sub{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
   .title-block{padding:24px 0 0}
@@ -752,13 +748,12 @@ refresh();
     if(/^#[0-9a-fA-F]{6}$/.test(v)) $('brandAccentPicker').value = v;
   });
 
-  // Logo → base64
-  $('brandLogo')._data = '';
-  $('brandLogo').addEventListener('change', function(){
-    if(!this.files || !this.files[0]){ this._data = ''; return; }
-    const reader = new FileReader();
-    reader.onload = e => { this._data = e.target.result; };
-    reader.readAsDataURL(this.files[0]);
+  // Project filter
+  $('projFilter').addEventListener('input', function(){
+    const q = this.value.toLowerCase();
+    $('projectCheckboxes').querySelectorAll('.proj-check').forEach(el => {
+      el.style.display = !q || el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
   });
 
   // ── Step 3: build ────────────────────────────────────────────────────────
@@ -774,11 +769,7 @@ refresh();
     const title  = $('brandTitle').value.trim()  || 'Project Performance Archive';
     const accent = ($('brandAccent').value.trim() || '#2d6a5c').replace(/[^#0-9a-fA-F]/g,'');
     const accentSoft = hexSoft(accent.length >= 7 ? accent : '#2d6a5c');
-    const logoData = $('brandLogo')._data || '';
-
-    const brandLockup = logoData
-      ? `<div class="masthead"><div class="brand"><div class="wordmark">${esc(firm)}</div></div><img class="logo" src="${logoData}" alt="${esc(firm)}"></div>`
-      : `<div class="masthead"><div class="brand"><div class="wordmark">${esc(firm)}</div></div></div>`;
+    const brandLockup = `<div class="masthead"><div class="brand"><div class="wordmark">${esc(firm)}</div></div></div>`;
 
     // Use function replacements throughout: prevents JS from interpreting $ in replacement strings.
     // Escape </ in JSON so project names can't truncate the archive's <script> block.

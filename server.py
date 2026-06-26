@@ -21,8 +21,13 @@ ROOT = Path(__file__).parent
 CONFIG_FILE = ROOT / "config.json"
 TOKENS_FILE = ROOT / "tokens.json"
 
-# BQE contractType: 1=Fixed Fee, 2=Hourly, 3=Hourly NTE — all others treated as fixed
-CONTRACT_TYPE_MAP = {1: "fixed", 2: "hourly", 3: "hourly"}
+# BQE contractType numeric values — keys stored as both int and str because the API
+# sometimes returns them as strings. Unrecognised values are treated as "fixed".
+CONTRACT_TYPE_MAP: dict = {0: "hourly", "0": "hourly",  # T&M / time-and-materials
+                           1: "fixed",  "1": "fixed",   # fixed fee
+                           2: "hourly", "2": "hourly",  # hourly (NTE variant)
+                           3: "fixed",  "3": "fixed",   # pursuit/RFQ phases
+                           4: "fixed",  "4": "fixed"}   # internal overhead
 DEFAULT_YEAR = 2023   # fallback for projects missing startDate
 PPI_FIRST, PPI_LAST = 2010, 2025
 
@@ -115,8 +120,26 @@ def _refresh_access_token() -> bool:
 
 # ── data fetch helpers ────────────────────────────────────────────────────────
 
+_unknown_contract_types: set = set()
+
 def _contract_type(ct) -> str:
-    return CONTRACT_TYPE_MAP.get(ct, "fixed")
+    if ct is None:
+        return "fixed"
+    result = CONTRACT_TYPE_MAP.get(ct)
+    if result:
+        return result
+    # Try int conversion in case BQE sends a numeric string we haven't seen
+    try:
+        result = CONTRACT_TYPE_MAP.get(int(ct))
+        if result:
+            return result
+    except (TypeError, ValueError):
+        pass
+    if ct not in _unknown_contract_types:
+        _unknown_contract_types.add(ct)
+        print(f"[BQE] Unknown contractType value: {ct!r} (type {type(ct).__name__}) — treating as fixed",
+              flush=True)
+    return "fixed"
 
 
 def _start_year(date_str) -> int | None:
@@ -250,10 +273,16 @@ def _join_data(projects: list, time_entries: list,
 
     by_id = {p["id"]: p for p in projects}
 
-    # Index phases (level 1) and subphases (level ≥ 2) by parentId
+    # Index phases (level 1) and subphases (level ≥ 2) by parentId.
+    # Deduplicate by ID — BQE can return the same record on multiple pages.
     phases_by_parent: dict = {}
     subs_by_parent: dict = {}
+    seen_phase_ids: set = set()
     for p in projects:
+        pid_val = p.get("id")
+        if pid_val in seen_phase_ids:
+            continue
+        seen_phase_ids.add(pid_val)
         lvl = p.get("level") or 0
         pid = p.get("parentId")
         if lvl == 1 and pid:
@@ -291,7 +320,15 @@ def _join_data(projects: list, time_entries: list,
         root_phases = phases_by_parent.get(root_id, [])
 
         phase_list = []
+        seen_phase_keys: set = set()
         for ph in root_phases:
+            # Deduplicate phases within a project by (name, contractAmount).
+            # BQE sometimes stores genuinely duplicate phase records with different UUIDs.
+            ph_key = (ph["name"], round(ph.get("contractAmount") or 0, 2))
+            if ph_key in seen_phase_keys:
+                continue
+            seen_phase_keys.add(ph_key)
+
             ph_id = ph["id"]
             sub_ids = [s["id"] for s in subs_by_parent.get(ph_id, [])]
             all_ids = [ph_id] + sub_ids
