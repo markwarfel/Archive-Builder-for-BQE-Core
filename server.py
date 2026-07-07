@@ -219,6 +219,7 @@ def _bqe_fetch_all(path: str, extra_params: dict | None = None,
     """
     page_num = 0
     all_items: list = []
+    seen_ids: set = set()
     while True:
         if max_pages is not None and page_num >= max_pages:
             break
@@ -228,7 +229,9 @@ def _bqe_fetch_all(path: str, extra_params: dict | None = None,
         items = _bqe_get(path, params)
         if not isinstance(items, list) or not items:
             break
-        all_items.extend(items)
+        new_items = [it for it in items if it.get("id") not in seen_ids]
+        seen_ids.update(it["id"] for it in items if it.get("id"))
+        all_items.extend(new_items)
         if on_page:
             on_page(len(all_items))
         page_num += 1
@@ -240,25 +243,33 @@ def _join_data(projects: list, time_entries: list,
                expense_entries: list, invoices: list) -> list:
     """Aggregate T&E + invoices into a project→phase tree for the archive."""
 
-    # Aggregate time by projectId
+    # Aggregate time by projectId.
+    # spent = billable, non-extra time (matches Core "Budget Spent" — services + expenses excl. extras)
+    # cost  = all hours at cost rate
     time_agg: dict = {}
     for e in time_entries:
         pid = e.get("projectId")
         if not pid:
             continue
         agg = time_agg.setdefault(pid, {"cost": 0.0, "spent": 0.0})
-        agg["cost"]  += (e.get("costRate") or 0) * (e.get("actualHours") or 0)
-        agg["spent"] += (e.get("billRate") or 0)  * (e.get("clientHours") or 0)
+        if not e.get("extra"):
+            agg["cost"] += (e.get("costRate") or 0) * (e.get("actualHours") or 0)
+        if e.get("billable") and not e.get("extra"):
+            agg["spent"] += (e.get("billRate") or 0) * (e.get("actualHours") or 0)
 
-    # Aggregate expenses by projectId
+    # Aggregate expenses by projectId.
+    # cost  = all expenses at cost rate
+    # spent = all non-extra expenses (billable filter excluded — non-billable expenses include
+    #         credit/reversal entries with negative chargeAmount that must stay in the total)
     exp_agg: dict = {}
     for e in expense_entries:
         pid = e.get("projectId")
         if not pid:
             continue
         agg = exp_agg.setdefault(pid, {"cost": 0.0, "spent": 0.0})
-        agg["cost"]  += (e.get("costRate") or 0) * (e.get("units") or 0)
-        agg["spent"] += e.get("chargeAmount") or 0
+        if not e.get("extra"):
+            agg["cost"] += (e.get("costRate") or 0) * (e.get("units") or 0)
+            agg["spent"] += e.get("chargeAmount") or 0
 
     # Aggregate contract billed by projectId from invoice line items
     inv_agg: dict = {}
@@ -561,7 +572,7 @@ class Handler(BaseHTTPRequestHandler):
             emit("progress", {"phase": "time", "msg": "Fetching time entries…", "pct": 22})
             time_entries = _bqe_fetch_all(
                 "timeentry",
-                {"fields": "projectId,costRate,actualHours,billRate,clientHours"},
+                {"fields": "projectId,billable,extra,costRate,actualHours,billRate"},
                 on_page=lambda n: emit("progress", {
                     "phase": "time", "msg": f"Time entries: {n:,}…", "pct": 22}),
                 max_pages=max_pages,
@@ -572,7 +583,7 @@ class Handler(BaseHTTPRequestHandler):
             emit("progress", {"phase": "expense", "msg": "Fetching expense entries…", "pct": 62})
             expense_entries = _bqe_fetch_all(
                 "expenseentry",
-                {"fields": "projectId,costRate,units,chargeAmount"},
+                {"fields": "projectId,billable,extra,costRate,units,chargeAmount"},
                 max_pages=max_pages,
             )
             emit("progress", {"phase": "expense",
