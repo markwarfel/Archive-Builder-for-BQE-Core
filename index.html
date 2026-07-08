@@ -230,348 +230,6 @@
 
 </div>
 
-<!-- ── Archive output template ──────────────────────────────────────────────── -->
-<!-- Placeholders: __DOCTITLE__ __FAVICON_TAG__ __ACCENT__ __ACCENT_SOFT__      -->
-<!--               __BRAND_LOCKUP__ __TITLE__ __PROJECTS__                      -->
-<script type="text/plain" id="archiveTemplate"><!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>__DOCTITLE__</title>
-__FAVICON_TAG__
-<style>
-  :root{
-    --paper:#f3f3f1; --surface:#ffffff;
-    --ink:#1d211d; --ink-soft:#666666; --muted:#8a8d88;
-    --hair:#e6e6e2; --hair-strong:#d4d4ce;
-    --teal:__ACCENT__;
-    --teal-soft:__ACCENT_SOFT__;
-    --jasper:#E75B54;
-    --radius:10px;
-    --serif:Georgia,"Times New Roman",serif;
-    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 80px}
-
-  .masthead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:26px 0 0}
-  .logo{height:52px;width:auto;display:block;max-width:240px;object-fit:contain;object-position:right top;flex-shrink:0}
-  .brand{display:flex;flex-direction:column;gap:5px}
-  .wordmark{font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--teal);line-height:1.05}
-  .brand-sub{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
-
-  .title-block{padding:24px 0 0}
-  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
-  h1{font-size:26px;letter-spacing:-.01em;margin:4px 0 0;font-weight:650}
-
-  .infl{margin-top:20px;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:14px 22px;flex-wrap:wrap}
-  .infl-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
-  .infl-label .dot{width:7px;height:7px;border-radius:2px;background:var(--teal)}
-  .info-btn{width:18px;height:18px;border-radius:50%;border:1px solid var(--hair-strong);background:var(--surface);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-style:italic;font-family:var(--serif)}
-  .info-btn:hover{border-color:var(--teal);color:var(--teal)}
-  .toggle-wrap{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-soft)}
-  .switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
-  .switch input{opacity:0;width:0;height:0}
-  .slider{position:absolute;inset:0;background:var(--hair-strong);border-radius:999px;transition:.18s;cursor:pointer}
-  .slider::before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.18s}
-  .switch input:checked + .slider{background:var(--teal)}
-  .switch input:checked + .slider::before{transform:translateX(18px)}
-  .switch input:focus-visible + .slider{outline:2px solid var(--teal);outline-offset:2px}
-  .infl-when-on{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap}
-  body.no-adj .infl-when-on{display:none}
-  body.no-adj .a{display:none !important}
-  .infl-group{display:flex;align-items:center;gap:9px}
-  .infl-sub{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
-  select,input[type=text]{font-family:var(--sans);font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:7px;padding:7px 10px}
-  select{font-variant-numeric:tabular-nums;cursor:pointer;min-width:96px}
-  input[type=text]{width:104px;font-family:var(--mono)}
-  select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-  .infl-or{font-size:12px;color:var(--muted)}
-  button{font-family:var(--sans);cursor:pointer}
-  .btn-apply{font-size:13px;font-weight:600;color:#fff;background:var(--teal);border:1px solid var(--teal);border-radius:7px;padding:7px 13px;transition:filter .15s}
-  .btn-apply:hover{filter:brightness(0.9)}
-  .source-link{font-size:12.5px;color:var(--teal);text-decoration:none;border-bottom:1px solid transparent}
-  .source-link:hover{border-bottom-color:var(--teal)}
-  .infl-status{flex-basis:100%;font-size:12.5px;color:var(--ink-soft);margin-top:2px}
-  .infl-status b{font-variant-numeric:tabular-nums;font-weight:650;color:var(--ink)}
-
-  .controls{position:sticky;top:0;z-index:5;background:var(--paper);padding:18px 0 12px;margin-top:14px}
-  .search-row{position:relative}
-  .search-row svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
-  #search{width:100%;font-size:16px;padding:13px 14px 13px 40px;border:1px solid var(--hair-strong);border-radius:10px;background:var(--surface)}
-  #search::placeholder{color:#aaa7a0}
-
-  .list{margin-top:6px;display:flex;flex-direction:column;gap:10px}
-  .proj{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden}
-  .proj.open{border-color:var(--hair-strong);box-shadow:0 1px 0 var(--hair)}
-  .proj-head{display:grid;grid-template-columns:96px 1fr auto 22px;gap:16px;align-items:center;padding:15px 18px;cursor:pointer;width:100%;text-align:left;background:none;border:0}
-  .proj-num{font-family:var(--mono);font-size:13px;color:var(--teal);font-weight:600}
-  .proj-id-block{display:flex;flex-direction:column;gap:4px;min-width:0}
-  .proj-name{font-size:16px;font-weight:600;letter-spacing:-.005em}
-  .proj-meta{font-size:12.5px;color:var(--muted)}
-  .proj-totals{text-align:right;display:flex;flex-direction:column;gap:5px;min-width:170px}
-  .proj-money .h{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-  .proj-money .a{font-family:var(--mono);font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-  .mini-margin{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--teal);text-align:right}
-  .mini-margin.loss{color:var(--jasper);font-weight:650}
-  .mini-margin .ml{font-family:var(--sans);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:5px}
-  .chev{color:var(--muted);transition:transform .18s ease;justify-self:end}
-  .proj.open .chev{transform:rotate(90deg)}
-
-  .detail{display:none;border-top:1px solid var(--hair);padding:4px 18px 18px}
-  .proj.open .detail{display:block}
-  .table-scroll{overflow-x:auto;margin:0 -18px;padding:0 18px}
-  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:780px}
-  thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:12px 10px 8px;border-bottom:1px solid var(--hair-strong);white-space:nowrap}
-  thead th.l{text-align:left}
-  tbody td{padding:11px 10px;border-bottom:1px solid var(--hair);text-align:right;vertical-align:middle}
-  tbody tr:last-child td{border-bottom:0}
-  .ph-name{text-align:left;font-weight:600;color:var(--ink)}
-  .ph-name .yr{display:block;font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono);margin-top:2px}
-  .bill{display:inline-block;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:5px}
-  .bill.fixed{color:var(--ink-soft);background:#eef0ee;border:1px solid var(--hair-strong)}
-  .bill.hourly{color:var(--ink-soft);background:#f5f2ee;border:1px solid var(--hair-strong)}
-  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
-  .num .h{display:block;letter-spacing:-.02em}
-  .num .a{display:block;font-size:11px;color:var(--ink-soft);margin-top:2px}
-  .num .a::before{content:"\2248 "}
-  .margin-cell{min-width:140px}
-  .margin-bar{display:flex;align-items:center;gap:9px;justify-content:flex-end}
-  .m-track{position:relative;width:78px;height:6px;border-radius:3px;background:var(--hair);overflow:hidden;flex-shrink:0}
-  .m-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .35s ease}
-  .m-fill.loss{background:var(--jasper)}
-  .m-mark{position:absolute;left:50%;top:-2px;width:2px;height:10px;background:var(--ink-soft);opacity:.5;transform:translateX(-1px);z-index:2}
-  .m-val{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;min-width:42px;text-align:right;color:var(--teal);font-weight:600}
-  .m-val.loss{color:var(--jasper)}
-  tfoot td{padding:12px 10px 4px;border-top:2px solid var(--hair-strong);font-weight:650;text-align:right}
-  tfoot .ph-name{font-weight:700}
-
-  .empty{text-align:center;padding:56px 20px;color:var(--muted);background:var(--surface);border:1px dashed var(--hair-strong);border-radius:var(--radius)}
-  .empty b{display:block;color:var(--ink-soft);font-size:15px;margin-bottom:4px}
-
-  .modal-backdrop{position:fixed;inset:0;background:rgba(13,15,14,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
-  .modal-backdrop.open{display:flex}
-  .modal{background:var(--surface);border-radius:14px;max-width:540px;width:100%;padding:26px 26px 22px;box-shadow:0 24px 64px rgba(0,0,0,.3);position:relative}
-  .modal h2{font-family:var(--serif);font-size:19px;margin:0 0 14px;letter-spacing:-.01em;color:var(--ink)}
-  .modal p{font-size:13.5px;color:var(--ink-soft);line-height:1.62;margin:0 0 13px}
-  .modal p:last-child{margin-bottom:0}
-  .modal code{font-family:var(--mono);background:var(--paper);border:1px solid var(--hair-strong);padding:1px 5px;border-radius:4px;font-size:11.5px;color:var(--ink-soft)}
-  .modal .formula{font-family:var(--mono);font-size:12.5px;background:var(--teal-soft);border:1px solid var(--hair-strong);border-radius:8px;padding:10px 12px;color:var(--ink);line-height:1.5}
-  .modal-close{position:absolute;top:12px;right:14px;border:0;background:none;font-size:24px;color:var(--muted);cursor:pointer;line-height:1;padding:4px 8px}
-  .modal-close:hover{color:var(--ink)}
-
-  @media (max-width:680px){
-    .proj-head{grid-template-columns:1fr auto 22px;gap:10px}
-    .proj-num{grid-column:1 / -1;order:-1}
-    .proj-totals{min-width:0}
-  }
-  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
-</style>
-</head>
-<body>
-
-<div class="wrap">
-  __BRAND_LOCKUP__
-  <div class="title-block">
-    <div class="eyebrow">Historical project archive</div>
-    <h1>__TITLE__</h1>
-  </div>
-
-  <div class="infl" role="group" aria-label="Inflation adjustment">
-    <span class="infl-label"><span class="dot"></span>Inflation adjustment
-      <button class="info-btn" id="infoBtn" aria-label="About the inflation adjustment">i</button>
-    </span>
-    <label class="toggle-wrap">
-      <span class="switch"><input type="checkbox" id="adjToggle"><span class="slider"></span></span>
-      Show today's dollars
-    </label>
-    <div class="infl-when-on">
-      <div class="infl-group">
-        <span class="infl-sub">Baseline</span>
-        <span class="infl-fixed" id="baselineLabel">2025 dollars</span>
-      </div>
-      <span class="infl-or">or enter a newer PPI value</span>
-      <div class="infl-group">
-        <input type="text" id="manualCpi" inputmode="decimal" placeholder="e.g. 208.0" aria-label="Manual PPI index value">
-        <button class="btn-apply" id="applyCpi">Apply</button>
-      </div>
-      <a class="source-link" href="https://fred.stlouisfed.org/series/PCU541330541330" target="_blank" rel="noopener">FRED PCU541330541330 →</a>
-      <div class="infl-status" id="inflStatus"></div>
-    </div>
-  </div>
-
-  <div class="controls">
-    <div class="search-row">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" id="search" placeholder="Search by project name or number…" autocomplete="off">
-    </div>
-  </div>
-
-  <main class="list" id="list" aria-live="polite"></main>
-</div>
-
-<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-  <div class="modal">
-    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
-    <h2 id="modalTitle">How the price adjustment works</h2>
-    <p>Adjusted figures restate each historical dollar in the dollars of the year you pick, using the <strong>Producer Price Index for Architectural Services</strong> (BLS series <code>PCU541330541330</code>, not seasonally adjusted), annual averages. This tracks the price of architectural services specifically, which is more defensible for fee comparisons than a consumer price index.</p>
-    <p class="formula">adjusted = original &times; (PPI of selected year &divide; PPI of the phase's rate-table year)</p>
-    <p>Because it's a ratio of two endpoints, every year in between is already baked into those index levels — nothing is missed, even across a long gap.</p>
-    <p>To get the latest index value, visit <a href="https://fred.stlouisfed.org/series/PCU541330541330" target="_blank" rel="noopener">FRED PCU541330541330</a> and read the most recent annual average from the data table.</p>
-  </div>
-</div>
-
-<script>
-// Producer Price Index for Architectural Services
-// BLS series PCU541330541330 (via FRED: fred.stlouisfed.org/series/PCU541330541330)
-// Annual averages 2010–2025.
-const PPI_AE = {
-  "2010":145.8,"2011":148.3,"2012":150.8,"2013":153.4,
-  "2014":155.7,"2015":160.0,"2016":163.2,"2017":166.8,
-  "2018":171.1,"2019":175.4,"2020":176.1,"2021":180.8,
-  "2022":189.7,"2023":196.4,"2024":201.0,"2025":205.9
-};
-const DEFAULT_YEAR = 2025;
-
-const PROJECTS = __PROJECTS__;
-
-const state = { year:DEFAULT_YEAR, level:PPI_AE[DEFAULT_YEAR], manual:false, showAdj:false, search:"" };
-const usd = n => "$" + Math.round(n).toLocaleString("en-US");
-const adj = (val, yr) => val * (state.level / (PPI_AE[yr] || PPI_AE[DEFAULT_YEAR]));
-
-function projTotals(p){
-  return p.phases.reduce((t,ph)=>{
-    t.contract+=ph.contract; t.billed+=ph.billed; t.spent+=ph.spent; t.cost+=ph.cost;
-    t.contractAdj+=adj(ph.contract,ph.yr); t.billedAdj+=adj(ph.billed,ph.yr);
-    t.spentAdj+=adj(ph.spent,ph.yr); t.costAdj+=adj(ph.cost,ph.yr);
-    return t;
-  },{contract:0,billed:0,spent:0,cost:0,contractAdj:0,billedAdj:0,spentAdj:0,costAdj:0});
-}
-
-function renderStatus(){
-  const lvl=state.level.toFixed(1);
-  const yrTxt=state.manual?"a custom PPI value":state.year+" dollars";
-  document.getElementById("inflStatus").innerHTML=
-    "Showing values in <b>"+yrTxt+"</b> &middot; A/E Services PPI <b>"+lvl+"</b>"+
-    (state.manual?" (manual)":" (annual avg · FRED PCU541330541330)");
-}
-
-function marginBar(billed,cost){
-  if(!cost) return '<div class="margin-bar"><span class="m-val">—</span></div>';
-  const r=billed/cost, loss=r<1, w=Math.max(2,Math.min(r,2)/2*100);
-  return '<div class="margin-bar"><div class="m-track"><div class="m-mark"></div>'+
-         '<div class="m-fill '+(loss?'loss':'')+'" style="width:'+w+'%"></div></div>'+
-         '<span class="m-val '+(loss?'loss':'')+'">'+r.toFixed(2)+'×</span></div>';
-}
-function miniMargin(billed,cost){
-  if(!cost) return '<div class="mini-margin"><span class="ml">Margin</span>—</div>';
-  const r=billed/cost;
-  return '<div class="mini-margin '+(r<1?'loss':'')+'"><span class="ml">Margin</span>'+r.toFixed(2)+'×</div>';
-}
-function moneyCell(val,yr){
-  return '<td class="num"><span class="h">'+usd(val)+'</span><span class="a">'+usd(adj(val,yr))+'</span></td>';
-}
-function allHourlyNoContract(p){
-  return p.phases.length>0 && p.phases.every(ph=>ph.bill==='hourly' && (!ph.contract||ph.contract===0));
-}
-function phaseTable(p){
-  const t=projTotals(p);
-  const rows=p.phases.map(ph=>
-    '<tr><td class="ph-name">'+ph.phase+'<span class="yr">Started '+ph.yr+'</span></td>'+
-    '<td><span class="bill '+ph.bill+'">'+ph.bill+'</span></td>'+
-    moneyCell(ph.contract,ph.yr)+moneyCell(ph.billed,ph.yr)+moneyCell(ph.spent,ph.yr)+moneyCell(ph.cost,ph.yr)+
-    '<td class="margin-cell">'+marginBar(ph.billed,ph.cost)+'</td></tr>').join("");
-  return '<div class="detail"><div class="table-scroll"><table>'+
-    '<thead><tr><th class="l">Phase</th><th class="l">Billing</th>'+
-    '<th>Contract</th><th>Contract billed</th><th>Budget spent</th><th>Cost</th><th>Margin · billed ÷ cost</th></tr></thead>'+
-    '<tbody>'+rows+'</tbody>'+
-    '<tfoot><tr><td class="ph-name">Total</td><td></td>'+
-    '<td class="num"><span class="h">'+usd(t.contract)+'</span><span class="a">'+usd(t.contractAdj)+'</span></td>'+
-    '<td class="num"><span class="h">'+usd(t.billed)+'</span><span class="a">'+usd(t.billedAdj)+'</span></td>'+
-    '<td class="num"><span class="h">'+usd(t.spent)+'</span><span class="a">'+usd(t.spentAdj)+'</span></td>'+
-    '<td class="num"><span class="h">'+usd(t.cost)+'</span><span class="a">'+usd(t.costAdj)+'</span></td>'+
-    '<td class="margin-cell">'+marginBar(t.billed,t.cost)+'</td></tr></tfoot></table></div></div>';
-}
-function renderList(){
-  const list=document.getElementById("list");
-  const visible=PROJECTS.filter(p=>{
-    const q=state.search.toLowerCase();
-    return !q||p.name.toLowerCase().includes(q)||p.num.toLowerCase().includes(q);
-  });
-  if(!visible.length){
-    list.innerHTML='<div class="empty"><b>No projects match.</b> Try a different name or number.</div>';
-    return;
-  }
-  list.innerHTML=visible.map(p=>{
-    const t=projTotals(p);
-    const yrs=p.phases.map(ph=>ph.yr);
-    const span=Math.min.apply(null,yrs)+'–'+Math.max.apply(null,yrs);
-    return '<article class="proj">'+
-      '<button class="proj-head" aria-expanded="false">'+
-        '<span class="proj-num">#'+p.num+'</span>'+
-        '<span class="proj-id-block"><span class="proj-name">'+p.name+'</span>'+
-          '<span class="proj-meta">'+p.phases.length+' phase'+(p.phases.length!==1?'s':'')+' · started '+span+'</span></span>'+
-        '<span class="proj-totals">'+
-          '<span class="proj-money">'+(allHourlyNoContract(p)
-              ? '<span class="h" style="color:var(--muted);font-size:13px">Hourly — open to view</span>'
-              : '<span class="h">'+usd(t.contract)+'</span> <span class="a">&asymp; '+usd(t.contractAdj)+'</span>')+'</span>'+
-          miniMargin(t.billed,t.cost)+
-        '</span>'+
-        '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>'+
-      '</button>'+phaseTable(p)+'</article>';
-  }).join("");
-  list.querySelectorAll(".proj-head").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const card=btn.closest(".proj");
-      btn.setAttribute("aria-expanded",card.classList.toggle("open"));
-    });
-  });
-}
-
-function applyManual(){
-  const raw=parseFloat(document.getElementById("manualCpi").value);
-  const lbl=document.getElementById("baselineLabel");
-  if(!isFinite(raw)||raw<=0){
-    document.getElementById("manualCpi").value="";
-    state.level=PPI_AE[DEFAULT_YEAR];state.manual=false;
-    if(lbl) lbl.textContent="2025 dollars";
-    refresh();return;
-  }
-  state.level=raw;state.manual=true;
-  if(lbl) lbl.textContent="custom PPI "+raw;
-  refresh();
-}
-function refresh(){renderStatus();renderList();}
-
-const adjToggle=document.getElementById("adjToggle");
-adjToggle.addEventListener("change",()=>{
-  state.showAdj=adjToggle.checked;
-  document.body.classList.toggle("no-adj",!state.showAdj);
-});
-
-const modal=document.getElementById("modal");
-function openModal(){modal.classList.add("open");document.getElementById("modalClose").focus();}
-function closeModal(){modal.classList.remove("open");document.getElementById("infoBtn").focus();}
-document.getElementById("infoBtn").addEventListener("click",openModal);
-document.getElementById("modalClose").addEventListener("click",closeModal);
-modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeModal();});
-
-document.getElementById("applyCpi").addEventListener("click",applyManual);
-document.getElementById("manualCpi").addEventListener("keydown",e=>{if(e.key==="Enter")applyManual();});
-document.getElementById("search").addEventListener("input",e=>{state.search=e.target.value;renderList();});
-
-document.body.classList.toggle("no-adj", !state.showAdj);
-refresh();
-<\/script>
-</body>
-</html></script>
-
-<!-- ── Builder script ──────────────────────────────────────────────────────── -->
 <script>
 (function(){
 
@@ -629,7 +287,6 @@ refresh();
       'width=520,height=680,resizable=yes,scrollbars=yes');
 
     if(!popup){
-      // Popup blocked — fall back to full-page navigation
       window.location.href = '/connect?client_id=' + encodeURIComponent(clientId);
       return;
     }
@@ -656,7 +313,6 @@ refresh();
     }
   });
 
-  // Legacy fallback for full-page redirect callback
   if(new URLSearchParams(location.search).get('connected') === '1'){
     history.replaceState({}, '', '/');
   }
@@ -707,7 +363,7 @@ refresh();
       $('fetchErr').hidden = false;
     });
 
-    es.onerror = () => {};  // suppress browser console noise on normal close
+    es.onerror = () => {};
   }
 
   $('btnFetch').addEventListener('click', startFetch);
@@ -739,7 +395,6 @@ refresh();
   $('uncheckAll').addEventListener('click', () =>
     $('projectCheckboxes').querySelectorAll('.proj-cb').forEach(cb => cb.checked = false));
 
-  // Color picker ↔ text input sync
   $('brandAccentPicker').addEventListener('input', function(){
     $('brandAccent').value = this.value;
   });
@@ -748,7 +403,6 @@ refresh();
     if(/^#[0-9a-fA-F]{6}$/.test(v)) $('brandAccentPicker').value = v;
   });
 
-  // Project filter
   $('projFilter').addEventListener('input', function(){
     const q = this.value.toLowerCase();
     $('projectCheckboxes').querySelectorAll('.proj-check').forEach(el => {
@@ -757,7 +411,9 @@ refresh();
   });
 
   // ── Step 3: build ────────────────────────────────────────────────────────
-  $('btnBuild').addEventListener('click', () => {
+  // archive-template.html is loaded fresh from disk each time so local edits
+  // to that file are picked up without restarting the server.
+  $('btnBuild').addEventListener('click', async () => {
     if(!_fetchedData) return;
 
     const checked = new Set(
@@ -771,14 +427,21 @@ refresh();
     const accentSoft = hexSoft(accent.length >= 7 ? accent : '#2d6a5c');
     const brandLockup = `<div class="masthead"><div class="brand"><div class="wordmark">${esc(firm)}</div></div></div>`;
 
-    // Use function replacements throughout: prevents JS from interpreting $ in replacement strings.
-    // Escape </ in JSON so project names can't truncate the archive's <script> block.
+    const [tmplResp, cssResp] = await Promise.all([
+      fetch('/archive-template.html'),
+      fetch('/archive-template.css'),
+    ]);
+    if(!tmplResp.ok || !cssResp.ok){
+      alert('Could not load template files — is the server still running?'); return;
+    }
+    const [template, css] = await Promise.all([tmplResp.text(), cssResp.text()]);
+
+    // Use function replacements throughout to prevent JS from interpreting $ in strings.
+    // Escape </ in JSON so project data can't prematurely close the archive's <script> block.
     const safeJson = JSON.stringify(projects).replace(/<\//g, '<\\/');
-    const template = $('archiveTemplate').textContent
-      .replace(/<\\\/script>/gi, '<\/script>');
     const html = template
+      .replace('__STYLES__',       () => css)
       .replace(/__DOCTITLE__/g,    () => esc(firm + ' — ' + title))
-      .replace(/__FAVICON_TAG__/g, () => '')
       .replace(/__ACCENT__/g,      () => accent)
       .replace(/__ACCENT_SOFT__/g, () => accentSoft)
       .replace('__BRAND_LOCKUP__', () => brandLockup)

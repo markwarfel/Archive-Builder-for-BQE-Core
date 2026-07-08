@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__DOCTITLE__</title>
+<style>__STYLES__</style>
+</head>
+<body>
+
+<div class="wrap">
+  __BRAND_LOCKUP__
+  <div class="title-block">
+    <div class="eyebrow">Historical project archive</div>
+    <h1>__TITLE__</h1>
+  </div>
+
+  <div class="infl" role="group" aria-label="Inflation adjustment">
+    <span class="infl-label"><span class="dot"></span>Inflation adjustment
+      <button class="info-btn" id="infoBtn" aria-label="About the inflation adjustment">i</button>
+    </span>
+    <label class="toggle-wrap">
+      <span class="switch"><input type="checkbox" id="adjToggle"><span class="slider"></span></span>
+      Show today's dollars
+    </label>
+    <div class="infl-when-on">
+      <div class="infl-group">
+        <span class="infl-sub">Baseline</span>
+        <span class="infl-fixed" id="baselineLabel">2025 dollars</span>
+      </div>
+      <span class="infl-or">or enter a newer PPI value</span>
+      <div class="infl-group">
+        <input type="text" id="manualCpi" inputmode="decimal" placeholder="e.g. 208.0" aria-label="Manual PPI index value">
+        <button class="btn-apply" id="applyCpi">Apply</button>
+      </div>
+      <a class="source-link" href="https://fred.stlouisfed.org/series/PCU541330541330" target="_blank" rel="noopener">FRED PCU541330541330 →</a>
+      <div class="infl-status" id="inflStatus"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="search-row">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="search" placeholder="Search by project name or number…" autocomplete="off">
+    </div>
+  </div>
+
+  <main class="list" id="list" aria-live="polite"></main>
+</div>
+
+<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    <h2 id="modalTitle">How the price adjustment works</h2>
+    <p>Adjusted figures restate each historical dollar in the dollars of the year you pick, using the <strong>Producer Price Index for Architectural Services</strong> (BLS series <code>PCU541330541330</code>, not seasonally adjusted), annual averages. This tracks the price of architectural services specifically, which is more defensible for fee comparisons than a consumer price index.</p>
+    <p class="formula">adjusted = original &times; (PPI of selected year &divide; PPI of the phase's rate-table year)</p>
+    <p>Because it's a ratio of two endpoints, every year in between is already baked into those index levels — nothing is missed, even across a long gap.</p>
+    <p>To get the latest index value, visit <a href="https://fred.stlouisfed.org/series/PCU541330541330" target="_blank" rel="noopener">FRED PCU541330541330</a> and read the most recent annual average from the data table.</p>
+  </div>
+</div>
+
+<script>
+// Producer Price Index for Architectural Services
+// BLS series PCU541330541330 (via FRED: fred.stlouisfed.org/series/PCU541330541330)
+// Annual averages 2010–2025.
+const PPI_AE = {
+  "2010":145.8,"2011":148.3,"2012":150.8,"2013":153.4,
+  "2014":155.7,"2015":160.0,"2016":163.2,"2017":166.8,
+  "2018":171.1,"2019":175.4,"2020":176.1,"2021":180.8,
+  "2022":189.7,"2023":196.4,"2024":201.0,"2025":205.9
+};
+const DEFAULT_YEAR = 2025;
+
+const PROJECTS = __PROJECTS__;
+
+const state = { level:PPI_AE[DEFAULT_YEAR], manual:false, showAdj:false, search:"" };
+const usd = n => "$" + Math.round(n).toLocaleString("en-US");
+const adj = (val, yr) => val * (state.level / (PPI_AE[yr] || PPI_AE[DEFAULT_YEAR]));
+
+function projTotals(p){
+  return p.phases.reduce((t,ph)=>{
+    t.contract+=ph.contract; t.billed+=ph.billed; t.spent+=ph.spent; t.cost+=ph.cost;
+    t.contractAdj+=adj(ph.contract,ph.yr); t.billedAdj+=adj(ph.billed,ph.yr);
+    t.spentAdj+=adj(ph.spent,ph.yr); t.costAdj+=adj(ph.cost,ph.yr);
+    return t;
+  },{contract:0,billed:0,spent:0,cost:0,contractAdj:0,billedAdj:0,spentAdj:0,costAdj:0});
+}
+
+function renderStatus(){
+  const lvl=state.level.toFixed(1);
+  const yrTxt=state.manual?"a custom PPI value":DEFAULT_YEAR+" dollars";
+  document.getElementById("inflStatus").innerHTML=
+    "Showing values in <b>"+yrTxt+"</b> &middot; A/E Services PPI <b>"+lvl+"</b>"+
+    (state.manual?" (manual)":" (annual avg · FRED PCU541330541330)");
+}
+
+function marginBar(billed,cost){
+  if(!cost) return '<div class="margin-bar"><span class="m-val">—</span></div>';
+  const r=billed/cost, loss=r<1, w=Math.max(2,Math.min(r,2)/2*100);
+  return '<div class="margin-bar"><div class="m-track"><div class="m-mark"></div>'+
+         '<div class="m-fill '+(loss?'loss':'')+'" style="width:'+w+'%"></div></div>'+
+         '<span class="m-val '+(loss?'loss':'')+'">'+r.toFixed(2)+'×</span></div>';
+}
+function miniMargin(billed,cost){
+  if(!cost) return '<div class="mini-margin"><span class="ml">Margin</span>—</div>';
+  const r=billed/cost;
+  return '<div class="mini-margin '+(r<1?'loss':'')+'"><span class="ml">Margin</span>'+r.toFixed(2)+'×</div>';
+}
+function moneyCell(val,yr){
+  return '<td class="num"><span class="h">'+usd(val)+'</span><span class="a">'+usd(adj(val,yr))+'</span></td>';
+}
+function allHourlyNoContract(p){
+  return p.phases.length>0 && p.phases.every(ph=>ph.bill==='hourly' && (!ph.contract||ph.contract===0));
+}
+function phaseTable(p){
+  const t=projTotals(p);
+  const rows=p.phases.map(ph=>
+    '<tr><td class="ph-name">'+ph.phase+'<span class="yr">Started '+ph.yr+'</span></td>'+
+    '<td><span class="bill '+ph.bill+'">'+ph.bill+'</span></td>'+
+    moneyCell(ph.contract,ph.yr)+moneyCell(ph.billed,ph.yr)+moneyCell(ph.spent,ph.yr)+moneyCell(ph.cost,ph.yr)+
+    '<td class="margin-cell">'+marginBar(ph.billed,ph.cost)+'</td></tr>').join("");
+  return '<div class="detail"><div class="table-scroll"><table>'+
+    '<thead><tr><th class="l">Phase</th><th class="l">Billing</th>'+
+    '<th>Contract</th><th>Contract billed</th><th>Budget spent</th><th>Cost</th><th>Margin · billed ÷ cost</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody>'+
+    '<tfoot><tr><td class="ph-name">Total</td><td></td>'+
+    '<td class="num"><span class="h">'+usd(t.contract)+'</span><span class="a">'+usd(t.contractAdj)+'</span></td>'+
+    '<td class="num"><span class="h">'+usd(t.billed)+'</span><span class="a">'+usd(t.billedAdj)+'</span></td>'+
+    '<td class="num"><span class="h">'+usd(t.spent)+'</span><span class="a">'+usd(t.spentAdj)+'</span></td>'+
+    '<td class="num"><span class="h">'+usd(t.cost)+'</span><span class="a">'+usd(t.costAdj)+'</span></td>'+
+    '<td class="margin-cell">'+marginBar(t.billed,t.cost)+'</td></tr></tfoot></table></div></div>';
+}
+function renderList(){
+  const list=document.getElementById("list");
+  const visible=PROJECTS.filter(p=>{
+    const q=state.search.toLowerCase();
+    return !q||p.name.toLowerCase().includes(q)||p.num.toLowerCase().includes(q);
+  });
+  if(!visible.length){
+    list.innerHTML='<div class="empty"><b>No projects match.</b> Try a different name or number.</div>';
+    return;
+  }
+  list.innerHTML=visible.map(p=>{
+    const t=projTotals(p);
+    const yrs=p.phases.map(ph=>ph.yr);
+    const span=Math.min.apply(null,yrs)+'–'+Math.max.apply(null,yrs);
+    return '<article class="proj">'+
+      '<button class="proj-head" aria-expanded="false">'+
+        '<span class="proj-num">#'+p.num+'</span>'+
+        '<span class="proj-id-block"><span class="proj-name">'+p.name+'</span>'+
+          '<span class="proj-meta">'+p.phases.length+' phase'+(p.phases.length!==1?'s':'')+' · started '+span+'</span></span>'+
+        '<span class="proj-totals">'+
+          '<span class="proj-money">'+(allHourlyNoContract(p)
+              ? '<span class="h" style="color:var(--muted);font-size:13px">Hourly — open to view</span>'
+              : '<span class="h">'+usd(t.contract)+'</span> <span class="a">&asymp; '+usd(t.contractAdj)+'</span>')+'</span>'+
+          miniMargin(t.billed,t.cost)+
+        '</span>'+
+        '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>'+
+      '</button>'+phaseTable(p)+'</article>';
+  }).join("");
+  list.querySelectorAll(".proj-head").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const card=btn.closest(".proj");
+      btn.setAttribute("aria-expanded",card.classList.toggle("open"));
+    });
+  });
+}
+
+function applyManual(){
+  const raw=parseFloat(document.getElementById("manualCpi").value);
+  const lbl=document.getElementById("baselineLabel");
+  if(!isFinite(raw)||raw<=0){
+    document.getElementById("manualCpi").value="";
+    state.level=PPI_AE[DEFAULT_YEAR];state.manual=false;
+    if(lbl) lbl.textContent="2025 dollars";
+    refresh();return;
+  }
+  state.level=raw;state.manual=true;
+  if(lbl) lbl.textContent="custom PPI "+raw;
+  refresh();
+}
+function refresh(){renderStatus();renderList();}
+
+const adjToggle=document.getElementById("adjToggle");
+adjToggle.addEventListener("change",()=>{
+  state.showAdj=adjToggle.checked;
+  document.body.classList.toggle("no-adj",!state.showAdj);
+});
+
+const modal=document.getElementById("modal");
+function openModal(){modal.classList.add("open");document.getElementById("modalClose").focus();}
+function closeModal(){modal.classList.remove("open");document.getElementById("infoBtn").focus();}
+document.getElementById("infoBtn").addEventListener("click",openModal);
+document.getElementById("modalClose").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeModal();});
+
+document.getElementById("applyCpi").addEventListener("click",applyManual);
+document.getElementById("manualCpi").addEventListener("keydown",e=>{if(e.key==="Enter")applyManual();});
+document.getElementById("search").addEventListener("input",e=>{state.search=e.target.value;renderList();});
+
+document.body.classList.toggle("no-adj", !state.showAdj);
+refresh();
+</script>
+</body>
+</html>

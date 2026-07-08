@@ -1,0 +1,320 @@
+from __future__ import annotations
+import json, secrets, urllib.error, urllib.parse, urllib.request
+from http.server import BaseHTTPRequestHandler
+
+import auth
+import bqe
+import join
+
+
+class Handler(BaseHTTPRequestHandler):
+
+    def log_message(self, fmt, *args):
+        pass  # suppress default access log
+
+    # ── response helpers ──────────────────────────────────────────────────────
+
+    def _send_json(self, data: dict, status: int = 200) -> None:
+        body = json.dumps(data).encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_html(self, html, status: int = 200) -> None:
+        body = html.encode("utf-8") if isinstance(html, str) else html
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _redirect(self, url: str) -> None:
+        self.send_response(302)
+        self.send_header("Location", url)
+        self.end_headers()
+
+    # ── routing ───────────────────────────────────────────────────────────────
+
+    def do_GET(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path   = parsed.path
+        params = dict(urllib.parse.parse_qsl(parsed.query))
+
+        if path == "/":
+            self._handle_root()
+        elif path == "/archive-template.html":
+            self._serve_file("archive-template.html")
+        elif path == "/archive-template.css":
+            self._serve_file("archive-template.css", "text/css; charset=utf-8")
+        elif path == "/README.md":
+            self._serve_file("README.md", "text/plain; charset=utf-8")
+        elif path == "/status":
+            self._handle_status()
+        elif path == "/connect":
+            self._handle_connect(params)
+        elif path == "/callback":
+            self._handle_callback(params)
+        elif path == "/disconnect":
+            self._handle_disconnect()
+        elif path == "/fetch":
+            self._handle_fetch(params)
+        elif path.startswith("/api/"):
+            self._handle_api(path[5:], params)
+        else:
+            self._send_json({"error": "not found"}, 404)
+
+    # ── route handlers ────────────────────────────────────────────────────────
+
+    def _handle_root(self):
+        f = auth.ROOT / "index.html"
+        if f.exists():
+            self._send_html(f.read_bytes())
+        else:
+            self._send_html("<h2>index.html not found next to server.py</h2>", 500)
+
+    def _serve_file(self, filename: str, content_type: str = "text/html; charset=utf-8"):
+        f = auth.ROOT / filename
+        if not f.exists():
+            self._send_json({"error": f"{filename} not found"}, 404)
+            return
+        body = f.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_status(self):
+        cfg = auth.load_config()
+        self._send_json({
+            "connected": bool(auth.tokens.get("access_token")),
+            "client_id": cfg.get("client_id", ""),
+            "endpoint":  auth.tokens.get("endpoint", ""),
+        })
+
+    def _handle_connect(self, params: dict):
+        client_id = params.get("client_id", "").strip()
+        if not client_id:
+            self._send_json({"error": "client_id is required"}, 400)
+            return
+        auth.save_config({"client_id": client_id})
+        code_verifier, code_challenge = auth.pkce_pair()
+        state = secrets.token_urlsafe(16)
+        auth.pending[state] = {
+            "code_verifier": code_verifier,
+            "client_id":     client_id,
+            "popup":         params.get("popup", "0"),
+        }
+        auth_url = auth.AUTH_ENDPOINT + "?" + urllib.parse.urlencode(
+            {
+                "client_id":             client_id,
+                "response_type":         "code",
+                "scope":                 auth.SCOPES,
+                "redirect_uri":          auth.REDIRECT_URI,
+                "state":                 state,
+                "code_challenge":        code_challenge,
+                "code_challenge_method": "S256",
+            },
+            quote_via=urllib.parse.quote,  # %20 not + — BQE requires this
+        )
+        self._redirect(auth_url)
+
+    def _handle_callback(self, params: dict):
+        error = params.get("error", "")
+        if error:
+            self._send_html(_error_page(f"BQE returned an error: {params.get('error_description', error)}"))
+            return
+        code  = params.get("code", "")
+        state = params.get("state", "")
+        if state not in auth.pending:
+            self._send_html(_error_page(
+                "State mismatch — the callback didn't match a pending login. "
+                "Try connecting again."
+            ))
+            return
+        pend = auth.pending.pop(state)
+        try:
+            tok = auth.exchange_code(code, pend["code_verifier"], pend["client_id"])
+            auth.save_tokens(tok)
+            if pend.get("popup") == "1":
+                self._send_html(_popup_done_page())
+            else:
+                self._redirect("/?connected=1")
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode(errors="replace")
+            self._send_html(_error_page(
+                f"Token exchange failed (HTTP {exc.code}).",
+                detail=body,
+                hint=(
+                    "This often means BQE doesn't support public-client (PKCE-only) "
+                    "token exchange for your app type. Try registering a "
+                    "<b>Regular Web App</b> instead of Native App and add your "
+                    "Client Secret to the connect form."
+                ) if exc.code in (400, 401) else None,
+            ))
+        except Exception as exc:
+            self._send_html(_error_page(f"Unexpected error: {exc}"))
+
+    def _handle_disconnect(self):
+        auth.clear_tokens()
+        self._redirect("/")
+
+    def _handle_fetch(self, params: dict):
+        """Stream all four BQE datasets, join them, and report progress via SSE."""
+        if not auth.tokens.get("access_token"):
+            self._send_json({"error": "not connected"}, 401)
+            return
+
+        max_pages = int(params["pages"]) if params.get("pages", "").isdigit() else None
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.end_headers()
+
+        def emit(evt: str, data: dict) -> None:
+            try:
+                self.wfile.write(f"event: {evt}\ndata: {json.dumps(data)}\n\n".encode())
+                self.wfile.flush()
+            except Exception:
+                pass
+
+        try:
+            emit("progress", {"phase": "projects", "msg": "Fetching projects…", "pct": 5})
+            projects = bqe.fetch_all(
+                "project",
+                {"fields": "id,code,name,parentId,rootProjectId,level,"
+                           "contractAmount,contractType,startDate"},
+                max_pages=max_pages,
+            )
+            emit("progress", {"phase": "projects", "msg": f"{len(projects):,} projects", "pct": 20})
+
+            emit("progress", {"phase": "time", "msg": "Fetching time entries…", "pct": 22})
+            time_entries = bqe.fetch_all(
+                "timeentry",
+                {"fields": "projectId,billable,extra,costRate,actualHours,billRate"},
+                on_page=lambda n: emit("progress", {"phase": "time", "msg": f"Time entries: {n:,}…", "pct": 22}),
+                max_pages=max_pages,
+            )
+            emit("progress", {"phase": "time", "msg": f"{len(time_entries):,} time entries", "pct": 60})
+
+            emit("progress", {"phase": "expense", "msg": "Fetching expense entries…", "pct": 62})
+            expense_entries = bqe.fetch_all(
+                "expenseentry",
+                {"fields": "projectId,billable,extra,costRate,units,chargeAmount"},
+                max_pages=max_pages,
+            )
+            emit("progress", {"phase": "expense", "msg": f"{len(expense_entries):,} expense entries", "pct": 75})
+
+            emit("progress", {"phase": "invoices", "msg": "Fetching invoices…", "pct": 77})
+            invoices = bqe.fetch_all("invoice", {"expand": "invoiceDetails"}, page_size=100, max_pages=max_pages)
+            emit("progress", {"phase": "invoices", "msg": f"{len(invoices):,} invoices", "pct": 90})
+
+            emit("progress", {"phase": "join", "msg": "Joining data…", "pct": 93})
+            result = join.join_data(projects, time_entries, expense_entries, invoices)
+            emit("progress", {"phase": "join", "msg": f"{len(result):,} root projects joined", "pct": 99})
+
+            emit("done", {
+                "projects": result,
+                "counts": {
+                    "projects":       len(projects),
+                    "timeEntries":    len(time_entries),
+                    "expenseEntries": len(expense_entries),
+                    "invoices":       len(invoices),
+                    "rootProjects":   len(result),
+                },
+            })
+
+        except urllib.error.HTTPError as exc:
+            if exc.code == 401:
+                emit("error", {"msg": "Session expired — disconnect and reconnect to BQE Core, then fetch again."})
+            else:
+                emit("error", {"msg": f"BQE API error {exc.code}: {exc.reason}"})
+        except Exception as exc:
+            emit("error", {"msg": str(exc)})
+
+    def _handle_api(self, subpath: str, params: dict):
+        """Proxy GET requests to the BQE API; exposes /api/<path> for ad-hoc inspection."""
+        if not auth.tokens.get("access_token"):
+            self._send_json({"error": "not connected"}, 401)
+            return
+        endpoint = auth.tokens.get("endpoint", "").rstrip("/")
+        if not endpoint:
+            self._send_json({"error": "no API endpoint in token response"}, 500)
+            return
+
+        url = f"{endpoint}/{subpath}"
+        if params:
+            url += "?" + urllib.parse.urlencode(params)
+
+        def _do_request():
+            req = urllib.request.Request(url)
+            req.add_header("Authorization", f"Bearer {auth.tokens['access_token']}")
+            req.add_header("Accept", "application/json")
+            with urllib.request.urlopen(req) as resp:
+                return resp.read(), resp.status
+
+        try:
+            data, status = _do_request()
+        except urllib.error.HTTPError as exc:
+            if exc.code == 401 and auth.refresh_access_token():
+                try:
+                    data, status = _do_request()
+                except urllib.error.HTTPError as exc2:
+                    self._send_json({"error": f"API error {exc2.code}"}, exc2.code)
+                    return
+            else:
+                self._send_json({"error": f"API error {exc.code}"}, exc.code)
+                return
+        except Exception as exc:
+            self._send_json({"error": str(exc)}, 500)
+            return
+
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+
+# ── helper pages ──────────────────────────────────────────────────────────────
+
+def _popup_done_page() -> str:
+    return """<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>body{font-family:system-ui,sans-serif;text-align:center;padding:60px 20px;color:#5d6b76}</style>
+</head><body>
+<p>Connected ✓ — this window will close automatically.</p>
+<script>
+try { window.opener.postMessage("bqe-connected", location.origin); } catch(e) {}
+window.close();
+</script>
+</body></html>"""
+
+
+def _error_page(message: str, detail: str = "", hint: str = "") -> str:
+    hint_html   = f'<div class="hint">{hint}</div>' if hint else ""
+    detail_html = f"<pre>{detail}</pre>" if detail else ""
+    return f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<title>Error — BQE Archive Builder</title>
+<style>
+  body{{font-family:system-ui,sans-serif;max-width:620px;margin:60px auto;padding:0 20px;color:#1d211d}}
+  h2{{color:#c0392b;margin-bottom:8px}}
+  .hint{{margin-top:16px;padding:12px 14px;background:#fff9ef;border:1px solid #f0d8a8;
+         border-radius:8px;font-size:13px;line-height:1.55}}
+  pre{{background:#f3f3f1;border-radius:6px;padding:12px;font-size:12px;
+       white-space:pre-wrap;word-break:break-all;overflow:auto}}
+  a{{color:#0f7d8c;font-weight:600}}
+</style></head>
+<body>
+<h2>Something went wrong</h2>
+<p>{message}</p>
+{hint_html}
+{detail_html}
+<p><a href="/">← Back to the tool</a></p>
+</body></html>"""
