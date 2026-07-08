@@ -60,6 +60,10 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_disconnect()
         elif path == "/fetch":
             self._handle_fetch(params)
+        elif path == "/debug":
+            self._handle_debug(params)
+        elif path == "/debug/time":
+            self._handle_debug_time(params)
         elif path.startswith("/api/"):
             self._handle_api(path[5:], params)
         else:
@@ -236,6 +240,111 @@ class Handler(BaseHTTPRequestHandler):
                 emit("error", {"msg": f"BQE API error {exc.code}: {exc.reason}"})
         except Exception as exc:
             emit("error", {"msg": str(exc)})
+
+    def _handle_debug(self, params: dict):
+        """Return a project's full phase tree with IDs — used to get phase IDs for Postman queries."""
+        root_id = params.get("project", "")
+        if not root_id:
+            self._send_json({"error": "?project=<root-project-id> required"}, 400)
+            return
+        if not auth.tokens.get("access_token"):
+            self._send_json({"error": "not connected"}, 401)
+            return
+        try:
+            projects = bqe.fetch_all("project", {
+                "fields": "id,name,level,parentId,contractAmount,startDate"
+            })
+            by_id = {p["id"]: p for p in projects}
+            if root_id not in by_id:
+                self._send_json({"error": f"{root_id!r} not found in {len(projects)} projects"}, 404)
+                return
+            children_of: dict = {}
+            for p in projects:
+                pid = p.get("parentId")
+                if pid:
+                    children_of.setdefault(pid, []).append(p)
+
+            def subtree(node_id: str) -> dict:
+                p = by_id[node_id]
+                return {
+                    "id":             node_id,
+                    "name":           p.get("name"),
+                    "level":          p.get("level"),
+                    "contractAmount": p.get("contractAmount"),
+                    "children":       [subtree(c["id"]) for c in children_of.get(node_id, [])],
+                }
+
+            self._send_json(subtree(root_id))
+        except Exception as exc:
+            self._send_json({"error": str(exc)}, 500)
+
+    def _handle_debug_time(self, params: dict):
+        """Fetch all time entries for a phase and return computed totals for comparison against Core.
+
+        GET /debug/time?project=<phase-id>
+        Returns: entry count, budget_spent (clientHours×billRate, billable only), cost (actualHours×costRate).
+        """
+        phase_id = params.get("project", "")
+        if not phase_id:
+            self._send_json({"error": "?project=<phase-id> required"}, 400)
+            return
+        if not auth.tokens.get("access_token"):
+            self._send_json({"error": "not connected"}, 401)
+            return
+        try:
+            entries = bqe.fetch_all(
+                "timeentry",
+                {
+                    "where":  f"projectId='{phase_id}'",
+                    "fields": "id,projectId,billable,costRate,actualHours,clientHours,billRate,wudMultiplier",
+                },
+            )
+            cost = raw = adjusted = 0.0
+            billable_count = 0
+            for e in entries:
+                actual = e.get("actualHours") or 0
+                rate   = e.get("billRate") or 0
+                wud    = e.get("wudMultiplier") or 1.0
+                cost  += (e.get("costRate") or 0) * actual
+                if e.get("billable"):
+                    billable_count += 1
+                    raw      += actual * rate
+                    adjusted += actual * rate * wud
+
+            expenses = bqe.fetch_all(
+                "expenseentry",
+                {
+                    "where":  f"projectId='{phase_id}'",
+                    "fields": "id,billable,extra,costRate,units,chargeAmount",
+                },
+            )
+            exp_cost = exp_charge_billable = exp_charge_all = 0.0
+            for e in expenses:
+                exp_cost += (e.get("costRate") or 0) * (e.get("units") or 0)
+                charge = e.get("chargeAmount") or 0
+                exp_charge_all += charge
+                if e.get("billable") and not e.get("extra"):
+                    exp_charge_billable += charge
+
+            self._send_json({
+                "projectId":       phase_id,
+                "time": {
+                    "totalEntries":    len(entries),
+                    "billableEntries": billable_count,
+                    "raw":             round(raw, 2),      # actualHours × billRate
+                    "adjusted":        round(adjusted, 2), # actualHours × billRate × wudMultiplier
+                    "cost":            round(cost, 2),
+                },
+                "expenses": {
+                    "totalEntries":         len(expenses),
+                    "cost":                 round(exp_cost, 2),
+                    "charge_billable_nonextra": round(exp_charge_billable, 2),
+                    "charge_all":           round(exp_charge_all, 2),
+                },
+                "combined_raw_plus_exp_charge": round(raw + exp_charge_billable, 2),
+            })
+        except Exception as exc:
+            self._send_json({"error": str(exc)}, 500)
 
     def _handle_api(self, subpath: str, params: dict):
         """Proxy GET requests to the BQE API; exposes /api/<path> for ad-hoc inspection."""

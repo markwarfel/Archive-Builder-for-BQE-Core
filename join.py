@@ -74,37 +74,42 @@ def join_data(projects: list, time_entries: list,
     """Aggregate T&E + invoices into a project → phase tree for the archive.
 
     Confirmed formulas (match BQE Core UI exactly):
-      Budget Spent = actualHours × billRate  (billable=True, extra=False entries)
-      Cost         = actualHours × costRate  (extra=False entries)
-      Contract Billed = sum of invoice detail amounts per project (non-void only)
+      Budget Spent = (actualHours × billRate, ALL time entries including non-billable)
+                   + (chargeAmount, ALL expense entries)
+      Cost         = (actualHours × costRate, all time) + (expense costRate × units, extra=False expenses)
+      Contract Billed = sum of (detail.amount - extraServiceAmount - extraExpenseAmount) per project (non-void)
     """
 
-    # Time aggregation by projectId
+    # Time aggregation by projectId.
+    # Budget Spent includes ALL time entries (billable and non-billable) at billRate × actualHours.
+    # BQE Core confirmed: non-billable time still consumes budget.
     time_agg: dict = {}
     for e in time_entries:
         pid = e.get("projectId")
         if not pid:
             continue
         agg = time_agg.setdefault(pid, {"cost": 0.0, "spent": 0.0})
-        if not e.get("extra"):
-            agg["cost"] += (e.get("costRate") or 0) * (e.get("actualHours") or 0)
-        if e.get("billable") and not e.get("extra"):
-            agg["spent"] += (e.get("billRate") or 0) * (e.get("actualHours") or 0)
+        actual = e.get("actualHours") or 0
+        agg["cost"]  += (e.get("costRate") or 0) * actual
+        agg["spent"] += (e.get("billRate") or 0) * actual
 
-    # Expense aggregation by projectId
-    # Note: billable filter intentionally excluded — non-billable expenses can include
-    # credit/reversal entries with negative chargeAmount that must stay in the total.
+    # Expense aggregation by projectId.
+    # Budget Spent includes ALL expense chargeAmounts (no billable/extra filter).
+    # Cost includes only non-extra expenses at costRate × units.
     exp_agg: dict = {}
     for e in expense_entries:
         pid = e.get("projectId")
         if not pid:
             continue
         agg = exp_agg.setdefault(pid, {"cost": 0.0, "spent": 0.0})
+        agg["spent"] += (e.get("chargeAmount") or 0)
         if not e.get("extra"):
             agg["cost"] += (e.get("costRate") or 0) * (e.get("units") or 0)
-            agg["spent"] += e.get("chargeAmount") or 0
 
-    # Invoice aggregation from line-item details
+    # Invoice aggregation from line-item details.
+    # Each detail's `amount` field is the gross total including reimbursable pass-throughs,
+    # so we sum serviceAmount + expenseAmount instead — those fields exclude extraService/
+    # extraExpense amounts ("Billed Extra" in BQE UI) and taxes.
     inv_agg: dict = {}
     for inv in invoices:
         if inv.get("isVoid"):
@@ -113,7 +118,10 @@ def join_data(projects: list, time_entries: list,
             pid = detail.get("projectId")
             if not pid:
                 continue
-            inv_agg[pid] = inv_agg.get(pid, 0.0) + (detail.get("amount") or 0)
+            billed = ((detail.get("amount") or 0) -
+                      (detail.get("extraServiceAmount") or 0) -
+                      (detail.get("extraExpenseAmount") or 0))
+            inv_agg[pid] = inv_agg.get(pid, 0.0) + billed
 
     by_id = {p["id"]: p for p in projects}
 
@@ -132,6 +140,14 @@ def join_data(projects: list, time_entries: list,
             phases_by_parent.setdefault(pid, []).append(p)
         elif lvl >= 2 and pid:
             subs_by_parent.setdefault(pid, []).append(p)
+
+    def _all_descendants(parent_id: str) -> list:
+        """Recursively collect all descendant project IDs at any nesting depth."""
+        ids = []
+        for child in subs_by_parent.get(parent_id, []):
+            ids.append(child["id"])
+            ids.extend(_all_descendants(child["id"]))
+        return ids
 
     def _agg(ids):
         cost = spent = billed = 0.0
@@ -173,15 +189,15 @@ def join_data(projects: list, time_entries: list,
             seen_phase_keys.add(ph_key)
 
             ph_id   = ph["id"]
-            sub_ids = [s["id"] for s in subs_by_parent.get(ph_id, [])]
-            all_ids = [ph_id] + sub_ids
+            all_ids = [ph_id] + _all_descendants(ph_id)
 
             cost, spent, billed = _agg(all_ids)
 
-            # Contract = max(phase contract, sum of sub-contracts) when subphases exist
-            sub_contract = sum((by_id.get(s, {}).get("contractAmount") or 0) for s in sub_ids)
+            # Contract = max(phase contract, sum of direct sub-contracts) when subphases exist
+            direct_subs = [s["id"] for s in subs_by_parent.get(ph_id, [])]
+            sub_contract = sum((by_id.get(s, {}).get("contractAmount") or 0) for s in direct_subs)
             ph_contract  = ph.get("contractAmount") or 0
-            contract = max(ph_contract, sub_contract) if sub_ids else ph_contract
+            contract = max(ph_contract, sub_contract) if direct_subs else ph_contract
 
             yr = clamp_year(start_year(ph.get("startDate")) or root_yr)
 

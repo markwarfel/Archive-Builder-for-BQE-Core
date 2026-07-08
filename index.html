@@ -343,12 +343,14 @@
       $('fetchRunning').hidden = true;
       $('fetchDone').hidden = false;
       const c = d.counts;
+      const fetchedAt = new Date().toLocaleString(undefined, {dateStyle:'medium',timeStyle:'short'});
       $('fetchSummary').innerHTML =
         '<b>Fetch complete.</b> ' +
         c.rootProjects.toLocaleString() + ' projects · ' +
         c.timeEntries.toLocaleString() + ' time entries · ' +
         c.expenseEntries.toLocaleString() + ' expense entries · ' +
-        c.invoices.toLocaleString() + ' invoices';
+        c.invoices.toLocaleString() + ' invoices' +
+        '<br><span style="font-weight:400;color:#2d7a48">Last fetched ' + fetchedAt + '</span>';
       populateReview(d.projects);
       $('stepBuild').hidden = false;
     });
