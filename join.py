@@ -75,8 +75,8 @@ def join_data(projects: list, time_entries: list,
 
     Confirmed formulas (match BQE Core UI exactly):
       Budget Spent = (actualHours × billRate, ALL time entries including non-billable)
-                   + (chargeAmount, ALL expense entries)
-      Cost         = (actualHours × costRate, all time) + (expense costRate × units, extra=False expenses)
+                   + (chargeAmount, non-extra expenses only)
+      Cost         = (actualHours × costRate, all time) + (expense costRate × units, ALL expenses)
       Contract Billed = sum of (detail.amount - extraServiceAmount - extraExpenseAmount) per project (non-void)
     """
 
@@ -94,17 +94,19 @@ def join_data(projects: list, time_entries: list,
         agg["spent"] += (e.get("billRate") or 0) * actual
 
     # Expense aggregation by projectId.
-    # Budget Spent includes ALL expense chargeAmounts (no billable/extra filter).
-    # Cost includes only non-extra expenses at costRate × units.
+    # Cost includes ALL expenses (reimbursable pass-throughs are real firm costs).
+    # Budget Spent excludes extra=True expenses — those are Billed Extra, already
+    # captured in Contract Billed and not part of the fee budget.
+    # Spent uses chargeAmount; Cost uses costRate × units.
     exp_agg: dict = {}
     for e in expense_entries:
         pid = e.get("projectId")
         if not pid:
             continue
         agg = exp_agg.setdefault(pid, {"cost": 0.0, "spent": 0.0})
-        agg["spent"] += (e.get("chargeAmount") or 0)
+        agg["cost"] += (e.get("costRate") or 0) * (e.get("units") or 0)
         if not e.get("extra"):
-            agg["cost"] += (e.get("costRate") or 0) * (e.get("units") or 0)
+            agg["spent"] += (e.get("chargeAmount") or 0)
 
     # Invoice aggregation from line-item details.
     # Each detail's `amount` field is the gross total including reimbursable pass-throughs,
