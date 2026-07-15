@@ -12,6 +12,11 @@ Everything runs on your own machine. Your Core data is granted only to *your*
 registered app and flows straight into your computer — it never passes through
 anyone else's server.
 
+![The generated archive — sample data](docs/archive-sample.png)
+
+*The generated archive (shown with fictional sample data): searchable projects,
+expandable phases, inflation adjustment, and optional performance columns.*
+
 ---
 
 ## What it does
@@ -106,6 +111,8 @@ On the Developer Portal dashboard, click **Add New Application** and use
 
 Click **Create**, open the app, and **copy its Client ID**.
 
+![Registering the app in the BQE Developer Portal](docs/setup-register-app.png)
+
 Because **Native App** is a public type, there is **no Client Secret** — that's
 correct, don't look for one.
 
@@ -125,6 +132,8 @@ The tool requests two scopes when you connect:
 2. Sign in on **Core's own login screen** with your normal Core credentials,
    pick your company, and **Grant Permission**.
 
+![Step 1 — connecting to BQE Core](docs/builder-1-connect.png)
+
 The Client ID is stored in `config.json` and your tokens in `tokens.json`, both
 local to this folder, so you stay connected across restarts.
 
@@ -135,6 +144,8 @@ local to this folder, so you stay connected across restarts.
 **Step 2 — Fetch.** Click **Fetch all data**. For 15 years of history this
 typically takes 1–4 minutes. A **Test mode** checkbox pulls only the first page
 of each dataset for a fast trial run.
+
+![Connected, ready to fetch](docs/builder-2-fetch.png)
 
 **Step 3 — Review & build.**
 
