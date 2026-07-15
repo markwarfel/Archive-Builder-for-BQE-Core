@@ -10,6 +10,9 @@ CONTRACT_TYPE_MAP: dict = {
     4: "fixed",  "4": "fixed",   # internal overhead
 }
 
+# Fallback rate-table year for phases with no start date, used only to clamp the
+# inflation year. This is distinct from the archive template's DEFAULT_YEAR, which
+# is the baseline "today's dollars" display year — the two serve different purposes.
 DEFAULT_YEAR = 2023
 PPI_FIRST, PPI_LAST = 2010, 2025
 
@@ -84,16 +87,17 @@ def join_data(projects: list, time_entries: list,
     # Budget Spent includes ALL time entries (billable and non-billable) at billRate × actualHours.
     # BQE Core confirmed: non-billable time still consumes budget.
     time_agg: dict = {}
-    for e in time_entries:
-        pid = e.get("projectId")
-        if not pid:
+    for entry in time_entries:
+        project_id = entry.get("projectId")
+        if not project_id:
             continue
-        agg = time_agg.setdefault(pid, {"cost": 0.0, "spent": 0.0, "role_hours": {}})
-        actual = e.get("actualHours") or 0
-        agg["cost"]  += (e.get("costRate") or 0) * actual
-        agg["spent"] += (e.get("billRate") or 0) * actual
-        key = e.get("classification") or ("$" + str(int(e.get("billRate") or 0)) + "/hr")
-        agg["role_hours"][key] = agg["role_hours"].get(key, 0.0) + actual
+        totals = time_agg.setdefault(project_id, {"cost": 0.0, "spent": 0.0, "role_hours": {}})
+        actual_hours = entry.get("actualHours") or 0
+        totals["cost"]  += (entry.get("costRate") or 0) * actual_hours
+        totals["spent"] += (entry.get("billRate") or 0) * actual_hours
+        # Bucket hours by staff role (classification); fall back to bill rate when unclassified.
+        role = entry.get("classification") or ("$" + str(int(entry.get("billRate") or 0)) + "/hr")
+        totals["role_hours"][role] = totals["role_hours"].get(role, 0.0) + actual_hours
 
     # Expense aggregation by projectId.
     # Cost includes ALL expenses (reimbursable pass-throughs are real firm costs).
@@ -101,49 +105,49 @@ def join_data(projects: list, time_entries: list,
     # captured in Contract Billed and not part of the fee budget.
     # Spent uses chargeAmount; Cost uses costRate × units.
     exp_agg: dict = {}
-    for e in expense_entries:
-        pid = e.get("projectId")
-        if not pid:
+    for entry in expense_entries:
+        project_id = entry.get("projectId")
+        if not project_id:
             continue
-        agg = exp_agg.setdefault(pid, {"cost": 0.0, "spent": 0.0})
-        agg["cost"] += (e.get("costRate") or 0) * (e.get("units") or 0)
-        if not e.get("extra"):
-            agg["spent"] += (e.get("chargeAmount") or 0)
+        totals = exp_agg.setdefault(project_id, {"cost": 0.0, "spent": 0.0})
+        totals["cost"] += (entry.get("costRate") or 0) * (entry.get("units") or 0)
+        if not entry.get("extra"):
+            totals["spent"] += (entry.get("chargeAmount") or 0)
 
     # Invoice aggregation from line-item details.
     # Each detail's `amount` field is the gross total including reimbursable pass-throughs,
     # so we sum serviceAmount + expenseAmount instead — those fields exclude extraService/
     # extraExpense amounts ("Billed Extra" in BQE UI) and taxes.
     inv_agg: dict = {}
-    for inv in invoices:
-        if inv.get("isVoid"):
+    for invoice in invoices:
+        if invoice.get("isVoid"):
             continue
-        for detail in (inv.get("invoiceDetails") or []):
-            pid = detail.get("projectId")
-            if not pid:
+        for detail in (invoice.get("invoiceDetails") or []):
+            project_id = detail.get("projectId")
+            if not project_id:
                 continue
             billed = ((detail.get("amount") or 0) -
                       (detail.get("extraServiceAmount") or 0) -
                       (detail.get("extraExpenseAmount") or 0))
-            inv_agg[pid] = inv_agg.get(pid, 0.0) + billed
+            inv_agg[project_id] = inv_agg.get(project_id, 0.0) + billed
 
-    by_id = {p["id"]: p for p in projects}
+    by_id = {proj["id"]: proj for proj in projects}
 
     # Index phases (level 1) and subphases (level ≥ 2) under their parent.
     # Deduplicate by ID — BQE can return the same record across pages.
     phases_by_parent: dict = {}
     subs_by_parent:   dict = {}
     seen_ids: set = set()
-    for p in projects:
-        if p.get("id") in seen_ids:
+    for project in projects:
+        if project.get("id") in seen_ids:
             continue
-        seen_ids.add(p["id"])
-        lvl = p.get("level") or 0
-        pid = p.get("parentId")
-        if lvl == 1 and pid:
-            phases_by_parent.setdefault(pid, []).append(p)
-        elif lvl >= 2 and pid:
-            subs_by_parent.setdefault(pid, []).append(p)
+        seen_ids.add(project["id"])
+        level     = project.get("level") or 0
+        parent_id = project.get("parentId")
+        if level == 1 and parent_id:
+            phases_by_parent.setdefault(parent_id, []).append(project)
+        elif level >= 2 and parent_id:
+            subs_by_parent.setdefault(parent_id, []).append(project)
 
     def _all_descendants(parent_id: str) -> list:
         """Recursively collect all descendant project IDs at any nesting depth."""
@@ -153,31 +157,32 @@ def join_data(projects: list, time_entries: list,
             ids.extend(_all_descendants(child["id"]))
         return ids
 
-    def _agg(ids):
+    def aggregate_ids(project_ids):
+        """Sum cost/spent/billed/hours and merge role-hour buckets across a set of project IDs."""
         cost = spent = billed = hours = 0.0
-        merged: dict = {}
-        for i in ids:
-            t = time_agg.get(i, {})
-            cost  += t.get("cost", 0)
-            spent += t.get("spent", 0)
-            for k, h in t.get("role_hours", {}).items():
-                merged[k] = merged.get(k, 0.0) + h
-                hours += h
-            x = exp_agg.get(i, {})
-            cost  += x.get("cost", 0)
-            spent += x.get("spent", 0)
-            billed += inv_agg.get(i, 0)
-        role_buckets = sorted(merged.items(), key=lambda kh: -kh[1])
+        role_hours_merged: dict = {}
+        for project_id in project_ids:
+            time_totals = time_agg.get(project_id, {})
+            cost  += time_totals.get("cost", 0)
+            spent += time_totals.get("spent", 0)
+            for role, role_hrs in time_totals.get("role_hours", {}).items():
+                role_hours_merged[role] = role_hours_merged.get(role, 0.0) + role_hrs
+                hours += role_hrs
+            expense_totals = exp_agg.get(project_id, {})
+            cost  += expense_totals.get("cost", 0)
+            spent += expense_totals.get("spent", 0)
+            billed += inv_agg.get(project_id, 0)
+        role_buckets = sorted(role_hours_merged.items(), key=lambda rb: -rb[1])
         return cost, spent, billed, hours, role_buckets
 
     result = []
     seen_root_ids: set = set()
     for root in projects:
-        lvl = root.get("level")
-        pid = root.get("parentId")
-        if pid is not None:
+        level     = root.get("level")
+        parent_id = root.get("parentId")
+        if parent_id is not None:
             continue
-        if lvl is not None and lvl != 0:
+        if level is not None and level != 0:
             continue
         if root["id"] in seen_root_ids:
             continue
@@ -200,7 +205,7 @@ def join_data(projects: list, time_entries: list,
             ph_id   = ph["id"]
             all_ids = [ph_id] + _all_descendants(ph_id)
 
-            cost, spent, billed, hours, role_buckets = _agg(all_ids)
+            cost, spent, billed, hours, role_buckets = aggregate_ids(all_ids)
 
             # Contract = max(phase contract, sum of direct sub-contracts) when subphases exist
             direct_subs = [s["id"] for s in subs_by_parent.get(ph_id, [])]
@@ -219,10 +224,10 @@ def join_data(projects: list, time_entries: list,
                 "spent":        round(spent, 2),
                 "cost":         round(cost, 2),
                 "hours":        round(hours, 2),
-                "role_buckets": [[k, round(h, 2)] for k, h in role_buckets],
+                "role_buckets": [[role, round(role_hrs, 2)] for role, role_hrs in role_buckets],
             })
 
-        root_cost, root_spent, root_billed, root_hours, root_role_buckets = _agg([root_id])
+        root_cost, root_spent, root_billed, root_hours, root_role_buckets = aggregate_ids([root_id])
 
         if not phase_list:
             phase_list.append({
@@ -234,7 +239,7 @@ def join_data(projects: list, time_entries: list,
                 "spent":        round(root_spent, 2),
                 "cost":         round(root_cost, 2),
                 "hours":        round(root_hours, 2),
-                "role_buckets": [[k, round(h, 2)] for k, h in root_role_buckets],
+                "role_buckets": [[role, round(role_hrs, 2)] for role, role_hrs in root_role_buckets],
             })
         elif root_cost > 0 or root_spent > 0 or root_billed > 0:
             # Time or billings posted directly to the root project (not a phase)
@@ -247,7 +252,7 @@ def join_data(projects: list, time_entries: list,
                 "spent":        round(root_spent, 2),
                 "cost":         round(root_cost, 2),
                 "hours":        round(root_hours, 2),
-                "role_buckets": [[k, round(h, 2)] for k, h in root_role_buckets],
+                "role_buckets": [[role, round(role_hrs, 2)] for role, role_hrs in root_role_buckets],
             })
 
         result.append({

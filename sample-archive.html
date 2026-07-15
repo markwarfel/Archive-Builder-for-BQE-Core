@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Meridian Design Studio — Project Performance Archive</title>
+        <style>
+            :root{
+  --paper:#f3f3f1; --surface:#ffffff;
+  --ink:#1d211d; --ink-soft:#666666; --muted:#8a8d88;
+  --hair:#e6e6e2; --hair-strong:#d4d4ce;
+  --teal:#2d6a5c;
+  --teal-soft:rgb(230,237,235);
+  --jasper:#E75B54;
+  --radius:10px;
+  --serif:Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px 80px}
+
+.masthead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:26px 0 0}
+.brand{display:flex;flex-direction:column;gap:5px}
+.wordmark{font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--teal);line-height:1.05}
+
+.title-block{padding:24px 0 0}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-size:26px;letter-spacing:-.01em;margin:4px 0 0;font-weight:650}
+
+.infl{margin-top:20px;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:14px 22px;flex-wrap:wrap}
+.infl-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.infl-label .dot{width:7px;height:7px;border-radius:2px;background:var(--teal)}
+.info-btn{border:0;background:none;padding:0;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.info-btn:hover{color:var(--teal)}
+.toggle-wrap{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-soft)}
+.switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--hair-strong);border-radius:999px;transition:.18s;cursor:pointer}
+.slider::before{content:"";position:absolute;height:16px;width:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.18s}
+.switch input:checked + .slider{background:var(--teal)}
+.switch input:checked + .slider::before{transform:translateX(18px)}
+.switch input:focus-visible + .slider{outline:2px solid var(--teal);outline-offset:2px}
+.infl-when-on{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap}
+body.no-adj .infl-when-on{display:none}
+body.no-adj .a{display:none !important}
+.infl-group{display:flex;align-items:center;gap:9px}
+.infl-sub{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input[type=text]{font-family:var(--mono);font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--hair-strong);border-radius:7px;padding:7px 10px;width:104px}
+input:focus-visible,button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.infl-or{font-size:12px;color:var(--muted)}
+button{font-family:var(--sans);cursor:pointer}
+.btn-apply{font-size:13px;font-weight:600;color:#fff;background:var(--teal);border:1px solid var(--teal);border-radius:7px;padding:7px 13px;transition:filter .15s}
+.btn-apply:hover{filter:brightness(0.9)}
+.source-link{font-size:12.5px;color:var(--teal);text-decoration:none;border-bottom:1px solid transparent}
+.source-link:hover{border-bottom-color:var(--teal)}
+.infl-status{flex-basis:100%;font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+.infl-status b{font-variant-numeric:tabular-nums;font-weight:650;color:var(--ink)}
+
+.controls{position:sticky;top:0;z-index:5;background:var(--paper);padding:18px 0 12px;margin-top:14px}
+.search-row{position:relative}
+.search-row svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+#search{width:100%;font-size:16px;padding:13px 14px 13px 40px;border:1px solid var(--hair-strong);border-radius:10px;background:var(--surface)}
+#search::placeholder{color:#aaa7a0}
+
+.list{margin-top:6px;display:flex;flex-direction:column;gap:10px}
+.proj{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);overflow:hidden}
+.proj.open{border-color:var(--hair-strong);box-shadow:0 1px 0 var(--hair)}
+.proj-head{display:grid;grid-template-columns:96px 1fr auto 22px;gap:16px;align-items:center;padding:15px 18px;cursor:pointer;width:100%;text-align:left;background:none;border:0}
+.proj-num{font-family:var(--mono);font-size:13px;color:var(--teal);font-weight:600}
+.proj-id-block{display:flex;flex-direction:column;gap:4px;min-width:0}
+.proj-name{font-size:16px;font-weight:600;letter-spacing:-.005em}
+.proj-meta{font-size:12.5px;color:var(--muted)}
+.proj-totals{text-align:right;display:flex;flex-direction:column;gap:5px;min-width:170px}
+.proj-money .h{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.proj-money .a{font-family:var(--mono);font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.mini-margin{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--teal);text-align:right}
+.mini-margin.loss{color:var(--jasper);font-weight:650}
+.mini-margin .ml{font-family:var(--sans);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:5px}
+.chev{color:var(--muted);transition:transform .18s ease;justify-self:end}
+.proj.open .chev{transform:rotate(90deg)}
+
+.detail{display:none;border-top:1px solid var(--hair);padding:4px 18px 18px}
+.proj.open .detail{display:block}
+/* The horizontal bleed lives on .table-wrap so it spans the full card width and the
+   right-edge scroll fade reaches the true container edge; .table-scroll keeps the
+   inner padding so table content still lines up with the rest of the card. */
+.table-wrap{position:relative;margin:0 -18px}
+.table-scroll{overflow-x:auto;padding:0 18px}
+/* Always-visible (non-overlay) horizontal scrollbar when the table overflows,
+   so it's obvious there are more columns off-screen. */
+.table-scroll{scrollbar-width:thin;scrollbar-color:var(--hair-strong) transparent}
+.table-scroll::-webkit-scrollbar{height:10px}
+.table-scroll::-webkit-scrollbar-track{background:transparent}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--hair-strong);border-radius:5px}
+.table-scroll::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+/* Fade hint stops above the scrollbar so the bar stays fully visible; hidden once
+   scrolled to the end (or when there's nothing to scroll) via the .at-end class. */
+.scroll-fade{position:absolute;top:0;right:0;bottom:12px;width:48px;background:linear-gradient(to right,transparent,var(--surface));pointer-events:none;transition:opacity .2s}
+.table-wrap.at-end .scroll-fade{opacity:0}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:780px}
+thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:12px 10px 8px;border-bottom:1px solid var(--hair-strong);white-space:nowrap}
+.tip{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);cursor:default;vertical-align:middle;margin-left:3px;flex-shrink:0;border:0;background:none;padding:0}
+.tip:hover,.tip:focus-visible{color:var(--teal);outline:none}
+.th-label{display:inline-flex;align-items:center;gap:3px}
+.th-label .tip{margin-left:0}
+thead th.l{text-align:left}
+tbody td{padding:11px 10px;border-bottom:1px solid var(--hair);text-align:right;vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+.ph-name{text-align:left;font-weight:600;color:var(--ink)}
+.ph-name .yr{display:block;font-size:11px;color:var(--muted);font-weight:500;font-family:var(--mono);margin-top:2px}
+.bill{display:inline-block;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:5px}
+.bill.fixed{color:var(--ink-soft);background:#eef0ee;border:1px solid var(--hair-strong)}
+.bill.hourly{color:var(--ink-soft);background:#f5f2ee;border:1px solid var(--hair-strong)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num .h{display:block;letter-spacing:-.02em}
+.num .a{display:block;font-size:11px;color:var(--ink-soft);margin-top:2px}
+.num .a::before{content:"\2248 "}
+.margin-cell{min-width:140px}
+.margin-bar{display:flex;align-items:center;gap:9px;justify-content:flex-end}
+.m-track{position:relative;width:78px;height:6px;border-radius:3px;background:var(--hair);overflow:hidden;flex-shrink:0}
+.m-fill{height:100%;background:var(--teal);border-radius:3px;transition:width .35s ease}
+.m-fill.loss{background:var(--jasper)}
+.m-mark{position:absolute;left:50%;top:-2px;width:2px;height:10px;background:var(--ink-soft);opacity:.5;transform:translateX(-1px);z-index:2}
+.m-val{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;min-width:42px;text-align:right;color:var(--teal);font-weight:600}
+.m-val.loss{color:var(--jasper)}
+tfoot td{padding:12px 10px 4px;border-top:2px solid var(--hair-strong);font-weight:650;text-align:right}
+tfoot .ph-name{font-weight:700}
+
+.empty{text-align:center;padding:56px 20px;color:var(--muted);background:var(--surface);border:1px dashed var(--hair-strong);border-radius:var(--radius)}
+.empty b{display:block;color:var(--ink-soft);font-size:15px;margin-bottom:4px}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(13,15,14,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:14px;max-width:540px;width:100%;padding:26px 26px 22px;box-shadow:0 24px 64px rgba(0,0,0,.3);position:relative}
+.modal h2{font-family:var(--serif);font-size:19px;margin:0 0 14px;letter-spacing:-.01em;color:var(--ink)}
+.modal p{font-size:13.5px;color:var(--ink-soft);line-height:1.62;margin:0 0 13px}
+.modal p:last-child{margin-bottom:0}
+.modal code{font-family:var(--mono);background:var(--paper);border:1px solid var(--hair-strong);padding:1px 5px;border-radius:4px;font-size:11.5px;color:var(--ink-soft)}
+.modal .formula{font-family:var(--mono);font-size:12.5px;background:var(--teal-soft);border:1px solid var(--hair-strong);border-radius:8px;padding:10px 12px;color:var(--ink);line-height:1.5}
+.modal-close{position:absolute;top:12px;right:14px;border:0;background:none;font-size:24px;color:var(--muted);cursor:pointer;line-height:1;padding:4px 8px}
+.modal-close:hover{color:var(--ink)}
+
+.col-toggles{margin-top:8px;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap}
+.col-toggles-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;flex-shrink:0}
+.col-toggle-wrap{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
+.col-toggle-wrap input{accent-color:var(--teal);cursor:pointer;width:13px;height:13px}
+
+.hours-col,.col-remaining,.col-profit,.col-profit-pct,.col-billed-pct,.col-spent-pct{display:none}
+body.show-hours .hours-col{display:table-cell}
+body.show-remaining .col-remaining{display:table-cell}
+body.show-profit .col-profit{display:table-cell}
+body.show-profit-pct .col-profit-pct{display:table-cell}
+body.show-billed-pct .col-billed-pct{display:table-cell}
+body.show-spent-pct .col-spent-pct{display:table-cell}
+
+.cv-neg{color:var(--jasper)}
+.cv-over{color:var(--jasper)}
+
+.hrs-total{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.role-detail{display:block;margin-top:5px}
+.role-row{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--ink-soft);line-height:1.6}
+.role-lbl{white-space:nowrap}
+.role-hrs{font-family:var(--mono);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+@media (max-width:680px){
+  .proj-head{grid-template-columns:1fr auto 22px;gap:10px}
+  .proj-num{grid-column:1 / -1;order:-1}
+  .proj-totals{min-width:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <div class="masthead"><div class="brand"><div class="wordmark">Meridian Design Studio</div></div></div>
+            <div class="title-block">
+                <div class="eyebrow">Historical project archive</div>
+                <h1>Project Performance Archive</h1>
+            </div>
+
+            <div class="infl" role="group" aria-label="Inflation adjustment">
+                <span class="infl-label"
+                    ><span class="dot"></span>Inflation adjustment
+                    <button
+                        class="info-btn"
+                        id="infoBtn"
+                        aria-label="About the inflation adjustment"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            fill="currentColor"
+                            viewBox="0 0 256 256"
+                        >
+                            <path
+                                d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"
+                            ></path>
+                        </svg>
+                    </button>
+                </span>
+                <label class="toggle-wrap">
+                    <span class="switch"
+                        ><input type="checkbox" id="adjToggle" /><span
+                            class="slider"
+                        ></span
+                    ></span>
+                    Show today's dollars
+                </label>
+                <div class="infl-when-on">
+                    <div class="infl-group">
+                        <span class="infl-sub">Baseline</span>
+                        <span class="infl-fixed" id="baselineLabel"
+                            >2025 dollars</span
+                        >
+                    </div>
+                    <span class="infl-or">or enter a newer PPI value</span>
+                    <div class="infl-group">
+                        <input
+                            type="text"
+                            id="manualCpi"
+                            inputmode="decimal"
+                            placeholder="e.g. 208.0"
+                            aria-label="Manual PPI index value"
+                        />
+                        <button class="btn-apply" id="applyCpi">Apply</button>
+                    </div>
+                    <a
+                        class="source-link"
+                        href="https://fred.stlouisfed.org/series/PCU54135413"
+                        target="_blank"
+                        rel="noopener"
+                        >FRED PCU54135413 →</a
+                    >
+                    <div class="infl-status" id="inflStatus"></div>
+                </div>
+            </div>
+
+            <div class="col-toggles" role="group" aria-label="Optional columns">
+                <span class="col-toggles-label">Columns</span>
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colRemaining" /> Budget
+                    remaining</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colProfit" /> Profit $</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colProfitPct" /> Profit %</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colBilledPct" /> % Billed</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colSpentPct" /> % Spent</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="hoursToggle" /> Hours</label
+                >
+            </div>
+
+            <div class="controls">
+                <div class="search-row">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    >
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                        type="text"
+                        id="search"
+                        placeholder="Search by project name or number…"
+                        autocomplete="off"
+                    />
+                </div>
+            </div>
+
+            <main class="list" id="list" aria-live="polite"></main>
+        </div>
+
+        <div
+            class="modal-backdrop"
+            id="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modalTitle"
+        >
+            <div class="modal">
+                <button class="modal-close" id="modalClose" aria-label="Close">
+                    &times;
+                </button>
+                <h2 id="modalTitle">How the price adjustment works</h2>
+                <p>
+                    Adjusted figures restate each historical dollar in the
+                    dollars of the year you pick, using the
+                    <strong
+                        >Producer Price Index for Architectural, Engineering,
+                        and Related Services</strong
+                    >
+                    (BLS series <code>PCU54135413</code>, not seasonally
+                    adjusted), annual averages. This tracks the price of
+                    architectural and engineering services specifically, which
+                    is more defensible for fee comparisons than a consumer price
+                    index.
+                </p>
+                <p class="formula">
+                    adjusted = original &times; (PPI of selected year &divide;
+                    PPI of the phase's rate-table year)
+                </p>
+                <p>
+                    Because it's a ratio of two endpoints, every year in between
+                    is already baked into those index levels — nothing is
+                    missed, even across a long gap.
+                </p>
+                <p>
+                    To get the latest index value, visit
+                    <a
+                        href="https://fred.stlouisfed.org/series/PCU54135413"
+                        target="_blank"
+                        rel="noopener"
+                        >FRED PCU54135413</a
+                    >
+                    and read the most recent annual average from the data table.
+                </p>
+            </div>
+        </div>
+
+        <script>
+            // Producer Price Index for Architectural, Engineering, and Related Services
+            // BLS series PCU54135413 (via FRED: fred.stlouisfed.org/series/PCU54135413)
+            // Annual averages 2010–2025; 2026 is a partial average (Jan–May).
+            const PPI_AE = {
+                2010: 143.5,
+                2011: 145.5,
+                2012: 147.5,
+                2013: 149.9,
+                2014: 152.2,
+                2015: 156.2,
+                2016: 159.4,
+                2017: 162.9,
+                2018: 166.5,
+                2019: 170.1,
+                2020: 170.6,
+                2021: 174.9,
+                2022: 183.1,
+                2023: 189.0,
+                2024: 193.3,
+                2025: 197.7,
+                2026: 200.8,
+            };
+            const DEFAULT_YEAR = 2025;
+
+            const PROJECTS = [{"num": "2101", "name": "2101 Riverside Park Restoration", "phases": [{"phase": "Schematic Design", "bill": "fixed", "yr": 2021, "contract": 48000, "billed": 48000.0, "spent": 34340.0, "cost": 21600.0, "hours": 244.0, "role_buckets": [["Landscape Designer", 120.0], ["Project Manager", 60.0], ["Drafter", 40.0], ["Principal", 24.0]]}, {"phase": "Design Development", "bill": "fixed", "yr": 2022, "contract": 72000, "billed": 72000.0, "spent": 59850.0, "cost": 37620.0, "hours": 450.0, "role_buckets": [["Landscape Designer", 220.0], ["Drafter", 110.0], ["Project Manager", 90.0], ["Principal", 30.0]]}, {"phase": "Construction Documents", "bill": "fixed", "yr": 2023, "contract": 120000, "billed": 108000.0, "spent": 98180.0, "cost": 61760.0, "hours": 760.0, "role_buckets": [["Landscape Designer", 300.0], ["Drafter", 260.0], ["Project Manager", 160.0], ["Principal", 40.0]]}]}, {"num": "1906", "name": "1906 Hillcrest Residence", "phases": [{"phase": "Schematic Design", "bill": "fixed", "yr": 2019, "contract": 40000, "billed": 40000.0, "spent": 14000.0, "cost": 8800.0, "hours": 100.0, "role_buckets": [["Landscape Designer", 80.0], ["Principal", 20.0]]}, {"phase": "Construction Administration", "bill": "hourly", "yr": 2020, "contract": 20000, "billed": 20000.0, "spent": 31160.0, "cost": 19700.0, "hours": 210.0, "role_buckets": [["Landscape Designer", 140.0], ["Principal", 60.0], ["Drafter", 10.0]]}]}, {"num": "2308", "name": "2308 Civic Plaza Concept Study", "phases": [{"phase": "Feasibility Study", "bill": "hourly", "yr": 2023, "contract": 0, "billed": 14200.0, "spent": 15570.0, "cost": 9824.0, "hours": 94.0, "role_buckets": [["Project Manager", 46.0], ["Landscape Designer", 30.0], ["Principal", 18.0]]}]}];
+
+            const state = {
+                level: PPI_AE[DEFAULT_YEAR],
+                manual: false,
+                showAdj: false,
+                search: "",
+            };
+            const formatUsd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+            const adj = (val, yr) =>
+                val * (state.level / (PPI_AE[yr] || PPI_AE[DEFAULT_YEAR]));
+
+            function projTotals(p) {
+                return p.phases.reduce(
+                    (t, ph) => {
+                        t.contract += ph.contract;
+                        t.billed += ph.billed;
+                        t.spent += ph.spent;
+                        t.cost += ph.cost;
+                        t.hours += ph.hours || 0;
+                        t.contractAdj += adj(ph.contract, ph.yr);
+                        t.billedAdj += adj(ph.billed, ph.yr);
+                        t.spentAdj += adj(ph.spent, ph.yr);
+                        t.costAdj += adj(ph.cost, ph.yr);
+                        return t;
+                    },
+                    {
+                        contract: 0,
+                        billed: 0,
+                        spent: 0,
+                        cost: 0,
+                        hours: 0,
+                        contractAdj: 0,
+                        billedAdj: 0,
+                        spentAdj: 0,
+                        costAdj: 0,
+                    },
+                );
+            }
+
+            function renderStatus() {
+                const lvl = state.level.toFixed(1);
+                const yrTxt = state.manual
+                    ? "a custom PPI value"
+                    : DEFAULT_YEAR + " dollars";
+                document.getElementById("inflStatus").innerHTML =
+                    "Showing values in <b>" +
+                    yrTxt +
+                    "</b> &middot; A/E Services PPI <b>" +
+                    lvl +
+                    "</b>" +
+                    (state.manual
+                        ? " (manual)"
+                        : " (annual avg · FRED PCU54135413)");
+            }
+
+            function tip(text) {
+                return (
+                    '<span class="tip" tabindex="0" data-tip="' +
+                    text.replace(/"/g, "&quot;") +
+                    '">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 256 256">' +
+                    '<path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path>' +
+                    "</svg></span>"
+                );
+            }
+
+            function marginBar(billed, cost) {
+                if (!cost)
+                    return '<div class="margin-bar"><span class="m-val">—</span></div>';
+                const ratio = billed / cost,
+                    isLoss = ratio < 1,
+                    widthPct = Math.max(2, (Math.min(ratio, 2) / 2) * 100);
+                return (
+                    '<div class="margin-bar"><div class="m-track"><div class="m-mark"></div>' +
+                    '<div class="m-fill ' +
+                    (isLoss ? "loss" : "") +
+                    '" style="width:' +
+                    widthPct +
+                    '%"></div></div>' +
+                    '<span class="m-val ' +
+                    (isLoss ? "loss" : "") +
+                    '">' +
+                    ratio.toFixed(2) +
+                    "×</span></div>"
+                );
+            }
+            function miniMargin(billed, cost) {
+                if (!cost)
+                    return '<div class="mini-margin"><span class="ml">Margin</span>—</div>';
+                const ratio = billed / cost;
+                return (
+                    '<div class="mini-margin ' +
+                    (ratio < 1 ? "loss" : "") +
+                    '"><span class="ml">Margin</span>' +
+                    ratio.toFixed(2) +
+                    "×</div>"
+                );
+            }
+            function moneyCell(val, yr) {
+                return (
+                    '<td class="num"><span class="h">' +
+                    formatUsd(val) +
+                    '</span><span class="a">' +
+                    formatUsd(adj(val, yr)) +
+                    "</span></td>"
+                );
+            }
+            function pct(n, d) {
+                return d ? (n / d) * 100 : null;
+            }
+            function formatPercent(v) {
+                return v == null ? "—" : v.toFixed(1) + "%";
+            }
+            // Cells for the optional computed columns. `row` is either a phase or the
+            // totals object — both expose contract/billed/spent/cost, so the same math
+            // works for body rows and the tfoot. All figures are historical (not inflation
+            // adjusted). Losses/over-budget percentages are wrapped in red.
+            function computedCells(row) {
+                var budgetRemaining = row.contract - row.spent;
+                var profitDollars = row.billed - row.cost;
+                var profitPct = pct(profitDollars, row.billed);
+                var billedPct = pct(row.billed, row.contract);
+                var spentPct = pct(row.spent, row.contract);
+                var redIfNegative = function (value, format) {
+                    return value != null && value < 0
+                        ? '<span class="cv-neg">' + format(value) + "</span>"
+                        : format(value);
+                };
+                var redIfOverBudget = function (value, format) {
+                    return value != null && value > 100
+                        ? '<span class="cv-over">' + format(value) + "</span>"
+                        : format(value);
+                };
+                return (
+                    '<td class="num col-remaining">' +
+                    redIfNegative(budgetRemaining, formatUsd) +
+                    "</td>" +
+                    '<td class="num col-profit">' +
+                    redIfNegative(profitDollars, formatUsd) +
+                    "</td>" +
+                    '<td class="num col-profit-pct">' +
+                    redIfNegative(profitPct, formatPercent) +
+                    "</td>" +
+                    '<td class="num col-billed-pct">' +
+                    redIfOverBudget(billedPct, formatPercent) +
+                    "</td>" +
+                    '<td class="num col-spent-pct">' +
+                    redIfOverBudget(spentPct, formatPercent) +
+                    "</td>"
+                );
+            }
+            function hoursCell(hours, buckets) {
+                var rows = (buckets || [])
+                    .map(function (b) {
+                        return (
+                            '<span class="role-row"><span class="role-lbl">' +
+                            b[0] +
+                            '</span><span class="role-hrs">' +
+                            b[1].toFixed(1) +
+                            "h</span></span>"
+                        );
+                    })
+                    .join("");
+                return (
+                    '<td class="num hours-col"><span class="hrs-total">' +
+                    (hours || 0).toFixed(1) +
+                    "h</span>" +
+                    (rows
+                        ? '<span class="role-detail">' + rows + "</span>"
+                        : "") +
+                    " </td>"
+                );
+            }
+            function allHourlyNoContract(p) {
+                return (
+                    p.phases.length > 0 &&
+                    p.phases.every(
+                        (ph) =>
+                            ph.bill === "hourly" &&
+                            (!ph.contract || ph.contract === 0),
+                    )
+                );
+            }
+            function phaseTable(p) {
+                const t = projTotals(p);
+                const rows = p.phases
+                    .map(
+                        (ph) =>
+                            '<tr><td class="ph-name">' +
+                            ph.phase +
+                            '<span class="yr">Started ' +
+                            ph.yr +
+                            "</span></td>" +
+                            '<td><span class="bill ' +
+                            ph.bill +
+                            '">' +
+                            ph.bill +
+                            "</span></td>" +
+                            moneyCell(ph.contract, ph.yr) +
+                            moneyCell(ph.billed, ph.yr) +
+                            moneyCell(ph.spent, ph.yr) +
+                            moneyCell(ph.cost, ph.yr) +
+                            computedCells(ph) +
+                            hoursCell(ph.hours, ph.role_buckets) +
+                            '<td class="margin-cell">' +
+                            marginBar(ph.billed, ph.cost) +
+                            "</td></tr>",
+                    )
+                    .join("");
+                return (
+                    '<div class="detail"><div class="table-wrap"><div class="table-scroll"><table>' +
+                    "<thead><tr>" +
+                    '<th class="l"><span class="th-label">Phase</span></th>' +
+                    '<th class="l"><span class="th-label">Billing' +
+                    tip(
+                        "Billing method — fixed fee or hourly (time & materials)",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Contract' +
+                    tip("Contracted fee amount for this phase") +
+                    "</span></th>" +
+                    '<th><span class="th-label">Contract billed' +
+                    tip(
+                        "Fees invoiced to the client, excluding reimbursable expense pass-throughs (Billed Extra)",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Budget spent' +
+                    tip(
+                        "Billable hours × bill rate. May differ slightly from BQE Core for phases with legacy entries not accessible via the API.",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Cost' +
+                    tip(
+                        "Staff time at cost rates plus non-reimbursable expenses",
+                    ) +
+                    "</span></th>" +
+                    '<th class="col-remaining"><span class="th-label">Budget remaining' +
+                    tip("Contract minus budget spent") +
+                    "</span></th>" +
+                    '<th class="col-profit"><span class="th-label">Profit $' +
+                    tip("Contract billed minus cost") +
+                    "</span></th>" +
+                    '<th class="col-profit-pct"><span class="th-label">Profit %' +
+                    tip("(Billed − cost) ÷ billed") +
+                    "</span></th>" +
+                    '<th class="col-billed-pct"><span class="th-label">% Billed' +
+                    tip("Contract billed as a percentage of contracted fee") +
+                    "</span></th>" +
+                    '<th class="col-spent-pct"><span class="th-label">% Spent' +
+                    tip("Budget spent as a percentage of contracted fee") +
+                    "</span></th>" +
+                    '<th class="hours-col"><span class="th-label">Hours' +
+                    tip(
+                        "Total hours logged per role — all staff, billable and non-billable",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Margin' +
+                    tip(
+                        "Billed ÷ cost — above 1.0× is profitable; the bar midpoint marks break-even",
+                    ) +
+                    "</span></th>" +
+                    "</tr></thead>" +
+                    "<tbody>" +
+                    rows +
+                    "</tbody>" +
+                    '<tfoot><tr><td class="ph-name">Total</td><td></td>' +
+                    '<td class="num"><span class="h">' +
+                    formatUsd(t.contract) +
+                    '</span><span class="a">' +
+                    formatUsd(t.contractAdj) +
+                    "</span></td>" +
+                    '<td class="num"><span class="h">' +
+                    formatUsd(t.billed) +
+                    '</span><span class="a">' +
+                    formatUsd(t.billedAdj) +
+                    "</span></td>" +
+                    '<td class="num"><span class="h">' +
+                    formatUsd(t.spent) +
+                    '</span><span class="a">' +
+                    formatUsd(t.spentAdj) +
+                    "</span></td>" +
+                    '<td class="num"><span class="h">' +
+                    formatUsd(t.cost) +
+                    '</span><span class="a">' +
+                    formatUsd(t.costAdj) +
+                    "</span></td>" +
+                    computedCells(t) +
+                    '<td class="num hours-col">' +
+                    t.hours.toFixed(1) +
+                    "h</td>" +
+                    '<td class="margin-cell">' +
+                    marginBar(t.billed, t.cost) +
+                    '</td></tr></tfoot></table></div><div class="scroll-fade"></div></div></div>'
+                );
+            }
+            function renderList() {
+                const list = document.getElementById("list");
+                const visible = PROJECTS.filter((p) => {
+                    const q = state.search.toLowerCase();
+                    return (
+                        !q ||
+                        p.name.toLowerCase().includes(q) ||
+                        p.num.toLowerCase().includes(q)
+                    );
+                });
+                if (!visible.length) {
+                    list.innerHTML =
+                        '<div class="empty"><b>No projects match.</b> Try a different name or number.</div>';
+                    return;
+                }
+                list.innerHTML = visible
+                    .map((p) => {
+                        const t = projTotals(p);
+                        const yrs = p.phases.map((ph) => ph.yr);
+                        const span =
+                            Math.min.apply(null, yrs) +
+                            "–" +
+                            Math.max.apply(null, yrs);
+                        return (
+                            '<article class="proj">' +
+                            '<button class="proj-head" aria-expanded="false">' +
+                            '<span class="proj-num">#' +
+                            p.num +
+                            "</span>" +
+                            '<span class="proj-id-block"><span class="proj-name">' +
+                            p.name +
+                            "</span>" +
+                            '<span class="proj-meta">' +
+                            p.phases.length +
+                            " phase" +
+                            (p.phases.length !== 1 ? "s" : "") +
+                            " · started " +
+                            span +
+                            "</span></span>" +
+                            '<span class="proj-totals">' +
+                            '<span class="proj-money">' +
+                            (allHourlyNoContract(p)
+                                ? '<span class="h" style="color:var(--muted);font-size:13px">Hourly — open to view</span>'
+                                : '<span class="h">' +
+                                  formatUsd(t.contract) +
+                                  '</span> <span class="a">&asymp; ' +
+                                  formatUsd(t.contractAdj) +
+                                  "</span>") +
+                            "</span>" +
+                            miniMargin(t.billed, t.cost) +
+                            "</span>" +
+                            '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>' +
+                            "</button>" +
+                            phaseTable(p) +
+                            "</article>"
+                        );
+                    })
+                    .join("");
+                list.querySelectorAll(".proj-head").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        const card = btn.closest(".proj");
+                        btn.setAttribute(
+                            "aria-expanded",
+                            card.classList.toggle("open"),
+                        );
+                        // On open, set the initial scroll-hint state once the table has
+                        // laid out. "at-end" (fade hidden) is true when scrolled to the
+                        // right edge — or when the table doesn't overflow at all.
+                        if (card.classList.contains("open")) {
+                            requestAnimationFrame(function () {
+                                const scroller =
+                                    card.querySelector(".table-scroll");
+                                if (scroller)
+                                    scroller.parentElement.classList.toggle(
+                                        "at-end",
+                                        scroller.scrollLeft +
+                                            scroller.clientWidth >=
+                                            scroller.scrollWidth - 2,
+                                    );
+                            });
+                        }
+                    });
+                });
+                // Keep the scroll hint in sync as the user scrolls any table.
+                // Capture phase (true) because scroll events don't bubble.
+                list.addEventListener(
+                    "scroll",
+                    function (e) {
+                        const scroller = e.target;
+                        if (!scroller.classList.contains("table-scroll")) return;
+                        scroller.parentElement.classList.toggle(
+                            "at-end",
+                            scroller.scrollLeft + scroller.clientWidth >=
+                                scroller.scrollWidth - 2,
+                        );
+                    },
+                    true,
+                );
+            }
+
+            function applyManual() {
+                const raw = parseFloat(
+                    document.getElementById("manualCpi").value,
+                );
+                const lbl = document.getElementById("baselineLabel");
+                if (!isFinite(raw) || raw <= 0) {
+                    document.getElementById("manualCpi").value = "";
+                    state.level = PPI_AE[DEFAULT_YEAR];
+                    state.manual = false;
+                    if (lbl) lbl.textContent = "2025 dollars";
+                    refresh();
+                    return;
+                }
+                state.level = raw;
+                state.manual = true;
+                if (lbl) lbl.textContent = "custom PPI " + raw;
+                refresh();
+            }
+            function refresh() {
+                renderStatus();
+                renderList();
+            }
+
+            const adjToggle = document.getElementById("adjToggle");
+            adjToggle.addEventListener("change", () => {
+                state.showAdj = adjToggle.checked;
+                document.body.classList.toggle("no-adj", !state.showAdj);
+            });
+            [
+                ["hoursToggle", "show-hours"],
+                ["colRemaining", "show-remaining"],
+                ["colProfit", "show-profit"],
+                ["colProfitPct", "show-profit-pct"],
+                ["colBilledPct", "show-billed-pct"],
+                ["colSpentPct", "show-spent-pct"],
+            ].forEach(function (pair) {
+                document
+                    .getElementById(pair[0])
+                    .addEventListener("change", function () {
+                        document.body.classList.toggle(pair[1], this.checked);
+                    });
+            });
+
+            const modal = document.getElementById("modal");
+            function openModal() {
+                modal.classList.add("open");
+                document.getElementById("modalClose").focus();
+            }
+            function closeModal() {
+                modal.classList.remove("open");
+                document.getElementById("infoBtn").focus();
+            }
+            document
+                .getElementById("infoBtn")
+                .addEventListener("click", openModal);
+            document
+                .getElementById("modalClose")
+                .addEventListener("click", closeModal);
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) closeModal();
+            });
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && modal.classList.contains("open"))
+                    closeModal();
+            });
+
+            document
+                .getElementById("applyCpi")
+                .addEventListener("click", applyManual);
+            document
+                .getElementById("manualCpi")
+                .addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") applyManual();
+                });
+            document.getElementById("search").addEventListener("input", (e) => {
+                state.search = e.target.value;
+                renderList();
+            });
+
+            // Tooltip for column header (i) buttons — uses position:fixed to escape overflow:auto table container
+            (function () {
+                let tt;
+                function getTooltip() {
+                    if (!tt) {
+                        tt = document.createElement("div");
+                        tt.style.cssText =
+                            "position:fixed;z-index:999;background:#1d211d;color:#fff;font-size:11.5px;" +
+                            "line-height:1.45;padding:6px 10px;border-radius:6px;max-width:220px;pointer-events:none;" +
+                            "opacity:0;transition:opacity .15s;font-family:system-ui,sans-serif;font-style:normal;font-weight:400";
+                        document.body.appendChild(tt);
+                    }
+                    return tt;
+                }
+                document.addEventListener("mouseover", function (e) {
+                    const el = e.target.closest(".tip");
+                    if (!el) return;
+                    const t = getTooltip();
+                    t.textContent = el.dataset.tip;
+                    t.style.opacity = "0";
+                    t.style.display = "block";
+                    const r = el.getBoundingClientRect();
+                    const w = t.offsetWidth;
+                    let left = r.left + r.width / 2 - w / 2;
+                    left = Math.max(
+                        8,
+                        Math.min(left, window.innerWidth - w - 8),
+                    );
+                    t.style.left = left + "px";
+                    t.style.top = r.top - t.offsetHeight - 6 + "px";
+                    t.style.opacity = "1";
+                });
+                document.addEventListener("mouseout", function (e) {
+                    if (!e.target.closest(".tip")) return;
+                    const t = getTooltip();
+                    t.style.opacity = "0";
+                });
+                document.addEventListener("focusin", function (e) {
+                    const el = e.target.closest(".tip");
+                    if (!el) return;
+                    el.dispatchEvent(
+                        new MouseEvent("mouseover", { bubbles: true }),
+                    );
+                });
+                document.addEventListener("focusout", function (e) {
+                    if (!e.target.closest(".tip")) return;
+                    const t = getTooltip();
+                    if (t) t.style.opacity = "0";
+                });
+            })();
+
+            document.body.classList.toggle("no-adj", !state.showAdj);
+            refresh();
+        </script>
+    </body>
+</html>

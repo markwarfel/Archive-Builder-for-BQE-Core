@@ -65,10 +65,10 @@
                     </div>
                     <a
                         class="source-link"
-                        href="https://fred.stlouisfed.org/series/PCU541330541330"
+                        href="https://fred.stlouisfed.org/series/PCU54135413"
                         target="_blank"
                         rel="noopener"
-                        >FRED PCU541330541330 →</a
+                        >FRED PCU54135413 →</a
                     >
                     <div class="infl-status" id="inflStatus"></div>
                 </div>
@@ -139,12 +139,14 @@
                     Adjusted figures restate each historical dollar in the
                     dollars of the year you pick, using the
                     <strong
-                        >Producer Price Index for Architectural Services</strong
+                        >Producer Price Index for Architectural, Engineering,
+                        and Related Services</strong
                     >
-                    (BLS series <code>PCU541330541330</code>, not seasonally
+                    (BLS series <code>PCU54135413</code>, not seasonally
                     adjusted), annual averages. This tracks the price of
-                    architectural services specifically, which is more
-                    defensible for fee comparisons than a consumer price index.
+                    architectural and engineering services specifically, which
+                    is more defensible for fee comparisons than a consumer price
+                    index.
                 </p>
                 <p class="formula">
                     adjusted = original &times; (PPI of selected year &divide;
@@ -158,10 +160,10 @@
                 <p>
                     To get the latest index value, visit
                     <a
-                        href="https://fred.stlouisfed.org/series/PCU541330541330"
+                        href="https://fred.stlouisfed.org/series/PCU54135413"
                         target="_blank"
                         rel="noopener"
-                        >FRED PCU541330541330</a
+                        >FRED PCU54135413</a
                     >
                     and read the most recent annual average from the data table.
                 </p>
@@ -201,7 +203,7 @@
                 showAdj: false,
                 search: "",
             };
-            const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+            const formatUsd = (n) => "$" + Math.round(n).toLocaleString("en-US");
             const adj = (val, yr) =>
                 val * (state.level / (PPI_AE[yr] || PPI_AE[DEFAULT_YEAR]));
 
@@ -246,7 +248,7 @@
                     "</b>" +
                     (state.manual
                         ? " (manual)"
-                        : " (annual avg · FRED PCU541330541330)");
+                        : " (annual avg · FRED PCU54135413)");
             }
 
             function tip(text) {
@@ -263,83 +265,85 @@
             function marginBar(billed, cost) {
                 if (!cost)
                     return '<div class="margin-bar"><span class="m-val">—</span></div>';
-                const r = billed / cost,
-                    loss = r < 1,
-                    w = Math.max(2, (Math.min(r, 2) / 2) * 100);
+                const ratio = billed / cost,
+                    isLoss = ratio < 1,
+                    widthPct = Math.max(2, (Math.min(ratio, 2) / 2) * 100);
                 return (
                     '<div class="margin-bar"><div class="m-track"><div class="m-mark"></div>' +
                     '<div class="m-fill ' +
-                    (loss ? "loss" : "") +
+                    (isLoss ? "loss" : "") +
                     '" style="width:' +
-                    w +
+                    widthPct +
                     '%"></div></div>' +
                     '<span class="m-val ' +
-                    (loss ? "loss" : "") +
+                    (isLoss ? "loss" : "") +
                     '">' +
-                    r.toFixed(2) +
+                    ratio.toFixed(2) +
                     "×</span></div>"
                 );
             }
             function miniMargin(billed, cost) {
                 if (!cost)
                     return '<div class="mini-margin"><span class="ml">Margin</span>—</div>';
-                const r = billed / cost;
+                const ratio = billed / cost;
                 return (
                     '<div class="mini-margin ' +
-                    (r < 1 ? "loss" : "") +
+                    (ratio < 1 ? "loss" : "") +
                     '"><span class="ml">Margin</span>' +
-                    r.toFixed(2) +
+                    ratio.toFixed(2) +
                     "×</div>"
                 );
             }
             function moneyCell(val, yr) {
                 return (
                     '<td class="num"><span class="h">' +
-                    usd(val) +
+                    formatUsd(val) +
                     '</span><span class="a">' +
-                    usd(adj(val, yr)) +
+                    formatUsd(adj(val, yr)) +
                     "</span></td>"
                 );
             }
             function pct(n, d) {
                 return d ? (n / d) * 100 : null;
             }
-            function fmtPct(v) {
+            function formatPercent(v) {
                 return v == null ? "—" : v.toFixed(1) + "%";
             }
-            function computedCells(ph, t) {
-                // t=true means tfoot row (use t object); false means phase row (use ph)
-                var src = ph;
-                var rem = src.contract - src.spent;
-                var prof = src.billed - src.cost;
-                var profP = pct(prof, src.billed);
-                var bilP = pct(src.billed, src.contract);
-                var spP = pct(src.spent, src.contract);
-                var neg = function (v, fmt) {
-                    return v != null && v < 0
-                        ? '<span class="cv-neg">' + fmt(v) + "</span>"
-                        : fmt(v);
+            // Cells for the optional computed columns. `row` is either a phase or the
+            // totals object — both expose contract/billed/spent/cost, so the same math
+            // works for body rows and the tfoot. All figures are historical (not inflation
+            // adjusted). Losses/over-budget percentages are wrapped in red.
+            function computedCells(row) {
+                var budgetRemaining = row.contract - row.spent;
+                var profitDollars = row.billed - row.cost;
+                var profitPct = pct(profitDollars, row.billed);
+                var billedPct = pct(row.billed, row.contract);
+                var spentPct = pct(row.spent, row.contract);
+                var redIfNegative = function (value, format) {
+                    return value != null && value < 0
+                        ? '<span class="cv-neg">' + format(value) + "</span>"
+                        : format(value);
                 };
-                var ov = function (v, fmt) {
-                    return v != null && v > 100
-                        ? '<span class="cv-over">' + fmt(v) + "</span>"
-                        : fmt(v);
+                var redIfOverBudget = function (value, format) {
+                    return value != null && value > 100
+                        ? '<span class="cv-over">' + format(value) + "</span>"
+                        : format(value);
                 };
                 return (
                     '<td class="num col-remaining">' +
-                    neg(rem, usd) +
+                    redIfNegative(budgetRemaining, formatUsd) +
                     "</td>" +
                     '<td class="num col-profit">' +
-                    neg(prof, usd) +
+                    redIfNegative(profitDollars, formatUsd) +
                     "</td>" +
                     '<td class="num col-profit-pct">' +
-                    neg(profP, fmtPct) +
+                    redIfNegative(profitPct, formatPercent) +
                     "</td>" +
                     '<td class="num col-billed-pct">' +
-                    ov(bilP, fmtPct) +
+                    redIfOverBudget(billedPct, formatPercent) +
                     "</td>" +
                     '<td class="num col-spent-pct">' +
-                    ov(spP, fmtPct) +
+                    redIfOverBudget(spentPct, formatPercent) +
                     "</td>"
                 );
             }
@@ -402,7 +406,7 @@
                     )
                     .join("");
                 return (
-                    '<div class="detail table-wrap"><div><div class="table-scroll"><table>' +
+                    '<div class="detail"><div class="table-wrap"><div class="table-scroll"><table>' +
                     "<thead><tr>" +
                     '<th class="l"><span class="th-label">Phase</span></th>' +
                     '<th class="l"><span class="th-label">Billing' +
@@ -459,24 +463,24 @@
                     "</tbody>" +
                     '<tfoot><tr><td class="ph-name">Total</td><td></td>' +
                     '<td class="num"><span class="h">' +
-                    usd(t.contract) +
+                    formatUsd(t.contract) +
                     '</span><span class="a">' +
-                    usd(t.contractAdj) +
+                    formatUsd(t.contractAdj) +
                     "</span></td>" +
                     '<td class="num"><span class="h">' +
-                    usd(t.billed) +
+                    formatUsd(t.billed) +
                     '</span><span class="a">' +
-                    usd(t.billedAdj) +
+                    formatUsd(t.billedAdj) +
                     "</span></td>" +
                     '<td class="num"><span class="h">' +
-                    usd(t.spent) +
+                    formatUsd(t.spent) +
                     '</span><span class="a">' +
-                    usd(t.spentAdj) +
+                    formatUsd(t.spentAdj) +
                     "</span></td>" +
                     '<td class="num"><span class="h">' +
-                    usd(t.cost) +
+                    formatUsd(t.cost) +
                     '</span><span class="a">' +
-                    usd(t.costAdj) +
+                    formatUsd(t.costAdj) +
                     "</span></td>" +
                     computedCells(t) +
                     '<td class="num hours-col">' +
@@ -531,9 +535,9 @@
                             (allHourlyNoContract(p)
                                 ? '<span class="h" style="color:var(--muted);font-size:13px">Hourly — open to view</span>'
                                 : '<span class="h">' +
-                                  usd(t.contract) +
+                                  formatUsd(t.contract) +
                                   '</span> <span class="a">&asymp; ' +
-                                  usd(t.contractAdj) +
+                                  formatUsd(t.contractAdj) +
                                   "</span>") +
                             "</span>" +
                             miniMargin(t.billed, t.cost) +
@@ -552,29 +556,35 @@
                             "aria-expanded",
                             card.classList.toggle("open"),
                         );
+                        // On open, set the initial scroll-hint state once the table has
+                        // laid out. "at-end" (fade hidden) is true when scrolled to the
+                        // right edge — or when the table doesn't overflow at all.
                         if (card.classList.contains("open")) {
                             requestAnimationFrame(function () {
-                                const ts = card.querySelector(".table-scroll");
-                                if (ts)
-                                    ts.parentElement.classList.toggle(
+                                const scroller =
+                                    card.querySelector(".table-scroll");
+                                if (scroller)
+                                    scroller.parentElement.classList.toggle(
                                         "at-end",
-                                        ts.scrollLeft + ts.clientWidth >=
-                                            ts.scrollWidth - 2,
+                                        scroller.scrollLeft +
+                                            scroller.clientWidth >=
+                                            scroller.scrollWidth - 2,
                                     );
                             });
                         }
                     });
                 });
-                // Update indicator as user scrolls any table
+                // Keep the scroll hint in sync as the user scrolls any table.
+                // Capture phase (true) because scroll events don't bubble.
                 list.addEventListener(
                     "scroll",
                     function (e) {
-                        const ts = e.target;
-                        if (!ts.classList.contains("table-scroll")) return;
-                        ts.parentElement.classList.toggle(
+                        const scroller = e.target;
+                        if (!scroller.classList.contains("table-scroll")) return;
+                        scroller.parentElement.classList.toggle(
                             "at-end",
-                            ts.scrollLeft + ts.clientWidth >=
-                                ts.scrollWidth - 2,
+                            scroller.scrollLeft + scroller.clientWidth >=
+                                scroller.scrollWidth - 2,
                         );
                     },
                     true,

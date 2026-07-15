@@ -1,0 +1,15 @@
+# OS / editor cruft
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Local credentials & config — never commit these
+.env
+tokens.json
+config.json
+
+# Real generated archives contain live client data — never commit them.
+# (sample-archive.html is intentionally committed as a fake-data demo.)
+*-archive-*.html

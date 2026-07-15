@@ -1,5 +1,5 @@
 from __future__ import annotations
-import csv, io, json, secrets, urllib.error, urllib.parse, urllib.request
+import csv, io, json, secrets, urllib.error, urllib.parse
 from http.server import BaseHTTPRequestHandler
 
 import auth
@@ -63,14 +63,8 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_disconnect()
         elif path == "/fetch":
             self._handle_fetch(params)
-        elif path == "/debug":
-            self._handle_debug(params)
-        elif path == "/debug/time":
-            self._handle_debug_time(params)
         elif path.startswith("/download/"):
             self._handle_download_csv(path[10:])
-        elif path.startswith("/api/"):
-            self._handle_api(path[5:], params)
         else:
             self._send_json({"error": "not found"}, 404)
 
@@ -238,7 +232,6 @@ class Handler(BaseHTTPRequestHandler):
             emit("done", {
                 "projects": result,
                 "counts": {
-                    "projects":       len(projects),
                     "timeEntries":    len(time_entries),
                     "expenseEntries": len(expense_entries),
                     "invoices":       len(invoices),
@@ -254,178 +247,75 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             emit("error", {"msg": str(exc)})
 
-    def _handle_debug(self, params: dict):
-        """Return a project's full phase tree with IDs — used to get phase IDs for Postman queries."""
-        root_id = params.get("project", "")
-        if not root_id:
-            self._send_json({"error": "?project=<root-project-id> required"}, 400)
-            return
-        if not auth.tokens.get("access_token"):
-            self._send_json({"error": "not connected"}, 401)
-            return
-        try:
-            projects = bqe.fetch_all("project", {
-                "fields": "id,name,level,parentId,contractAmount,startDate"
-            })
-            by_id = {p["id"]: p for p in projects}
-            if root_id not in by_id:
-                self._send_json({"error": f"{root_id!r} not found in {len(projects)} projects"}, 404)
-                return
-            children_of: dict = {}
-            for p in projects:
-                pid = p.get("parentId")
-                if pid:
-                    children_of.setdefault(pid, []).append(p)
-
-            def subtree(node_id: str) -> dict:
-                p = by_id[node_id]
-                return {
-                    "id":             node_id,
-                    "name":           p.get("name"),
-                    "level":          p.get("level"),
-                    "contractAmount": p.get("contractAmount"),
-                    "children":       [subtree(c["id"]) for c in children_of.get(node_id, [])],
-                }
-
-            self._send_json(subtree(root_id))
-        except Exception as exc:
-            self._send_json({"error": str(exc)}, 500)
-
-    def _handle_debug_time(self, params: dict):
-        """Fetch all time entries for a phase and return computed totals for comparison against Core.
-
-        GET /debug/time?project=<phase-id>
-        Returns: entry count, budget_spent (clientHours×billRate, billable only), cost (actualHours×costRate).
-        """
-        phase_id = params.get("project", "")
-        if not phase_id:
-            self._send_json({"error": "?project=<phase-id> required"}, 400)
-            return
-        if not auth.tokens.get("access_token"):
-            self._send_json({"error": "not connected"}, 401)
-            return
-        try:
-            entries = bqe.fetch_all(
-                "timeentry",
-                {
-                    "where":  f"projectId='{phase_id}'",
-                    "fields": "projectId,billable,costRate,actualHours,billRate,classification,resource",
-                },
-            )
-            cost = raw = 0.0
-            billable_count = 0
-            role_hours: dict = {}
-            for e in entries:
-                actual = e.get("actualHours") or 0
-                rate   = e.get("billRate") or 0
-                cost  += (e.get("costRate") or 0) * actual
-                if e.get("billable"):
-                    billable_count += 1
-                    raw += actual * rate
-                key = e.get("classification") or f"${int(rate)}/hr"
-                role_hours[key] = role_hours.get(key, 0.0) + actual
-
-            expenses = bqe.fetch_all(
-                "expenseentry",
-                {
-                    "where":  f"projectId='{phase_id}'",
-                    "fields": "id,billable,extra,costRate,units,chargeAmount",
-                },
-            )
-            exp_cost = exp_charge_billable = exp_charge_all = 0.0
-            for e in expenses:
-                exp_cost += (e.get("costRate") or 0) * (e.get("units") or 0)
-                charge = e.get("chargeAmount") or 0
-                exp_charge_all += charge
-                if e.get("billable") and not e.get("extra"):
-                    exp_charge_billable += charge
-
-            role_summary = sorted(role_hours.items(), key=lambda x: -x[1])
-
-            self._send_json({
-                "projectId":  phase_id,
-                "time": {
-                    "totalEntries":    len(entries),
-                    "billableEntries": billable_count,
-                    "raw":             round(raw, 2),
-                    "cost":            round(cost, 2),
-                    "by_role":         [[k, round(h, 2)] for k, h in role_summary],
-                },
-                "expenses": {
-                    "totalEntries":         len(expenses),
-                    "cost":                 round(exp_cost, 2),
-                    "charge_billable_nonextra": round(exp_charge_billable, 2),
-                    "charge_all":           round(exp_charge_all, 2),
-                },
-                "combined_raw_plus_exp_charge": round(raw + exp_charge_billable, 2),
-            })
-        except Exception as exc:
-            self._send_json({"error": str(exc)}, 500)
-
-    def _handle_download_csv(self, name: str):
-        """Serve a raw-data CSV from the most recent fetch."""
-        key_map = {
+    def _handle_download_csv(self, filename: str):
+        """Serve a raw-data CSV from the most recent fetch (backs the builder's Export buttons)."""
+        filename_to_dataset = {
             "projects.csv":     "projects",
             "time-entries.csv": "time_entries",
             "expenses.csv":     "expense_entries",
             "invoices.csv":     "invoices",
         }
-        key = key_map.get(name)
-        if not key:
-            self._send_json({"error": f"unknown dataset: {name}"}, 404)
+        dataset = filename_to_dataset.get(filename)
+        if not dataset:
+            self._send_json({"error": f"unknown dataset: {filename}"}, 404)
             return
         if not _raw_cache:
             self._send_json({"error": "no data — run a fetch first"}, 404)
             return
 
-        rows = list(_raw_cache.get(key, []))
+        rows = list(_raw_cache.get(dataset, []))
 
-        if key == "invoices":
-            flat = []
-            for inv in rows:
-                details = inv.get("invoiceDetails") or []
-                base = {k: v for k, v in inv.items() if k != "invoiceDetails"}
-                if not details:
-                    flat.append(base)
+        # Invoices arrive with nested line items; flatten to one row per detail line
+        # so the CSV is a flat table. Invoices with no details still emit one row.
+        if dataset == "invoices":
+            flattened_rows = []
+            for invoice in rows:
+                detail_lines = invoice.get("invoiceDetails") or []
+                invoice_fields = {k: v for k, v in invoice.items() if k != "invoiceDetails"}
+                if not detail_lines:
+                    flattened_rows.append(invoice_fields)
                 else:
-                    for d in details:
-                        flat.append({"invoiceId": base.get("id"), **base, **d})
-            rows = flat
+                    for detail in detail_lines:
+                        flattened_rows.append({"invoiceId": invoice_fields.get("id"),
+                                               **invoice_fields, **detail})
+            rows = flattened_rows
 
-        # Enrich time entries, expenses, and invoice details with human-readable names.
-        # Prepend project_name / phase_name so they appear as the first columns.
-        if key in ("time_entries", "expense_entries", "invoices"):
-            by_id = {p["id"]: p for p in _raw_cache.get("projects", [])}
-            enriched = []
+        # Enrich T&E and invoice rows with human-readable names so a reader doesn't
+        # have to resolve projectId UUIDs. project_name / phase_name lead the columns.
+        # A row's project can be a phase (has a parent) or a top-level project.
+        if dataset in ("time_entries", "expense_entries", "invoices"):
+            projects_by_id = {proj["id"]: proj for proj in _raw_cache.get("projects", [])}
+            enriched_rows = []
             for row in rows:
-                pid = row.get("projectId")
-                proj = by_id.get(pid) if pid else None
-                if proj:
-                    parent = by_id.get(proj.get("parentId") or "")
+                project_id = row.get("projectId")
+                project = projects_by_id.get(project_id) if project_id else None
+                if project:
+                    parent = projects_by_id.get(project.get("parentId") or "")
                     if parent:
                         project_name = parent["name"]
-                        phase_name   = proj["name"]
+                        phase_name   = project["name"]
                     else:
-                        project_name = proj["name"]
+                        project_name = project["name"]
                         phase_name   = ""
                 else:
                     project_name = phase_name = ""
-                enriched.append({"project_name": project_name, "phase_name": phase_name, **row})
-            rows = enriched
+                enriched_rows.append({"project_name": project_name,
+                                      "phase_name": phase_name, **row})
+            rows = enriched_rows
 
         if not rows:
             self.send_response(200)
             self.send_header("Content-Type", "text/csv; charset=utf-8")
-            self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.end_headers()
             return
 
-        out = io.StringIO()
-        writer = csv.DictWriter(out, fieldnames=list(rows[0].keys()),
+        csv_buffer = io.StringIO()
+        writer = csv.DictWriter(csv_buffer, fieldnames=list(rows[0].keys()),
                                 extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-        body = ("﻿" + out.getvalue()).encode("utf-8")  # BOM for Excel
+        body = ("﻿" + csv_buffer.getvalue()).encode("utf-8")  # UTF-8 BOM so Excel detects encoding
 
         self.send_response(200)
         self.send_header("Content-Type", "text/csv; charset=utf-8")
@@ -433,49 +323,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
-
-    def _handle_api(self, subpath: str, params: dict):
-        """Proxy GET requests to the BQE API; exposes /api/<path> for ad-hoc inspection."""
-        if not auth.tokens.get("access_token"):
-            self._send_json({"error": "not connected"}, 401)
-            return
-        endpoint = auth.tokens.get("endpoint", "").rstrip("/")
-        if not endpoint:
-            self._send_json({"error": "no API endpoint in token response"}, 500)
-            return
-
-        url = f"{endpoint}/{subpath}"
-        if params:
-            url += "?" + urllib.parse.urlencode(params)
-
-        def _do_request():
-            req = urllib.request.Request(url)
-            req.add_header("Authorization", f"Bearer {auth.tokens['access_token']}")
-            req.add_header("Accept", "application/json")
-            with urllib.request.urlopen(req) as resp:
-                return resp.read(), resp.status
-
-        try:
-            data, status = _do_request()
-        except urllib.error.HTTPError as exc:
-            if exc.code == 401 and auth.refresh_access_token():
-                try:
-                    data, status = _do_request()
-                except urllib.error.HTTPError as exc2:
-                    self._send_json({"error": f"API error {exc2.code}"}, exc2.code)
-                    return
-            else:
-                self._send_json({"error": f"API error {exc.code}"}, exc.code)
-                return
-        except Exception as exc:
-            self._send_json({"error": str(exc)}, 500)
-            return
-
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
 
 
 # ── helper pages ──────────────────────────────────────────────────────────────

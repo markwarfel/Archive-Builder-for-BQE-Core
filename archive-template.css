@@ -16,7 +16,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .wrap{max-width:1080px;margin:0 auto;padding:0 22px 80px}
 
 .masthead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:26px 0 0}
-.logo{height:52px;width:auto;display:block;max-width:240px;object-fit:contain;object-position:right top;flex-shrink:0}
 .brand{display:flex;flex-direction:column;gap:5px}
 .wordmark{font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--teal);line-height:1.05}
 
@@ -78,9 +77,21 @@ button{font-family:var(--sans);cursor:pointer}
 
 .detail{display:none;border-top:1px solid var(--hair);padding:4px 18px 18px}
 .proj.open .detail{display:block}
-.table-wrap{position:relative}
-.table-scroll{overflow-x:auto;margin:0 -18px;padding:0 18px}
-.scroll-fade{position:absolute;top:0;right:0;bottom:0;width:56px;background:linear-gradient(to right,transparent,var(--surface));pointer-events:none;transition:opacity .2s;border-radius:0 0 var(--radius) 0}
+/* The horizontal bleed lives on .table-wrap so it spans the full card width and the
+   right-edge scroll fade reaches the true container edge; .table-scroll keeps the
+   inner padding so table content still lines up with the rest of the card. */
+.table-wrap{position:relative;margin:0 -18px}
+.table-scroll{overflow-x:auto;padding:0 18px}
+/* Always-visible (non-overlay) horizontal scrollbar when the table overflows,
+   so it's obvious there are more columns off-screen. */
+.table-scroll{scrollbar-width:thin;scrollbar-color:var(--hair-strong) transparent}
+.table-scroll::-webkit-scrollbar{height:10px}
+.table-scroll::-webkit-scrollbar-track{background:transparent}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--hair-strong);border-radius:5px}
+.table-scroll::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+/* Fade hint stops above the scrollbar so the bar stays fully visible; hidden once
+   scrolled to the end (or when there's nothing to scroll) via the .at-end class. */
+.scroll-fade{position:absolute;top:0;right:0;bottom:12px;width:48px;background:linear-gradient(to right,transparent,var(--surface));pointer-events:none;transition:opacity .2s}
 .table-wrap.at-end .scroll-fade{opacity:0}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:780px}
 thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:12px 10px 8px;border-bottom:1px solid var(--hair-strong);white-space:nowrap}
