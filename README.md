@@ -1,4 +1,4 @@
-# BQE Core Archive Builder
+# Archive Builder for BQE Core
 
 A small local tool that reads your firm's project, time, expense, and invoice
 data **directly from the BQE Core API** and builds a **self-contained HTML
@@ -65,10 +65,9 @@ Review & build.**
 ### Preview without connecting
 
 A ready-made demo built from **fake sample data** is included:
-[`sample-archive.html`](sample-archive.html). Download it and open in a browser,
-or view it rendered online via
-[htmlpreview](https://htmlpreview.github.io/?https://github.com/USER/REPO/blob/main/sample-archive.html)
-*(replace `USER/REPO` with this repo's path)*.
+
+- **[▶ View the sample archive live](https://htmlpreview.github.io/?https://github.com/markwarfel/Archive-Builder-for-BQE-Core/blob/main/sample-archive.html)** — rendered right in your browser, nothing to install (via htmlpreview.github.io).
+- Or **[open the file on GitHub](sample-archive.html)** and click **Download raw file** to save it and open it locally.
 
 To regenerate it yourself (no BQE account needed):
 
@@ -142,8 +141,7 @@ local to this folder, so you stay connected across restarts.
 ## Using the builder
 
 **Step 2 — Fetch.** Click **Fetch all data**. For 15 years of history this
-typically takes 1–4 minutes. A **Test mode** checkbox pulls only the first page
-of each dataset for a fast trial run.
+typically takes 1–4 minutes.
 
 ![Connected, ready to fetch](docs/builder-2-fetch.png)
 

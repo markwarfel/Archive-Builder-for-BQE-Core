@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BQE Core Archive Builder</title>
+<title>Archive Builder for BQE Core</title>
 <style>
   :root{
     --navy:#00304b; --orange:#ff9900; --red:#c0392b;
@@ -100,7 +100,7 @@
 <div class="wrap">
 
   <header class="top">
-    <h1>BQE Core Archive Builder</h1>
+    <h1>Archive Builder for BQE Core</h1>
     <div class="sub">Pulls project &amp; time data directly from your BQE Core account and builds a self-contained historical archive.</div>
   </header>
 
@@ -158,10 +158,6 @@
       <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
         Pulls all projects, time entries, expense entries, and invoices from your account. For 15 years of data this typically takes 1–4 minutes.
       </p>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:14px;cursor:pointer">
-        <input type="checkbox" id="testMode">
-        Test mode — first page only (~1,000 records per dataset, fast)
-      </label>
       <button class="btn btn-primary" id="btnFetch">Fetch all data</button>
       <div class="errline" id="fetchErr" hidden></div>
     </div>
@@ -333,8 +329,7 @@
     $('fetchBarFill').style.width = '0%';
     $('fetchMsg').textContent = 'Starting…';
 
-    const testMode = $('testMode').checked;
-    const es = new EventSource(testMode ? '/fetch?pages=1' : '/fetch');
+    const es = new EventSource('/fetch');
 
     es.addEventListener('progress', e => {
       const d = JSON.parse(e.data);

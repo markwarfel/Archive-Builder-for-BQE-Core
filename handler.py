@@ -171,8 +171,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"error": "not connected"}, 401)
             return
 
-        max_pages = int(params["pages"]) if params.get("pages", "").isdigit() else None
-
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -192,7 +190,6 @@ class Handler(BaseHTTPRequestHandler):
                 "project",
                 {"fields": "id,code,name,parentId,rootProjectId,level,"
                            "contractAmount,contractType,startDate"},
-                max_pages=max_pages,
             )
             emit("progress", {"phase": "projects", "msg": f"{len(projects):,} projects", "pct": 20})
 
@@ -201,7 +198,6 @@ class Handler(BaseHTTPRequestHandler):
                 "timeentry",
                 {"fields": "projectId,billable,extra,costRate,actualHours,billRate,classification,resource"},
                 on_page=lambda n: emit("progress", {"phase": "time", "msg": f"Time entries: {n:,}…", "pct": 22}),
-                max_pages=max_pages,
             )
             emit("progress", {"phase": "time", "msg": f"{len(time_entries):,} time entries", "pct": 60})
 
@@ -209,12 +205,11 @@ class Handler(BaseHTTPRequestHandler):
             expense_entries = bqe.fetch_all(
                 "expenseentry",
                 {"fields": "projectId,billable,extra,costRate,units,chargeAmount"},
-                max_pages=max_pages,
             )
             emit("progress", {"phase": "expense", "msg": f"{len(expense_entries):,} expense entries", "pct": 75})
 
             emit("progress", {"phase": "invoices", "msg": "Fetching invoices…", "pct": 77})
-            invoices = bqe.fetch_all("invoice", {"expand": "invoiceDetails"}, page_size=100, max_pages=max_pages)
+            invoices = bqe.fetch_all("invoice", {"expand": "invoiceDetails"}, page_size=100)
             emit("progress", {"phase": "invoices", "msg": f"{len(invoices):,} invoices", "pct": 90})
 
             emit("progress", {"phase": "join", "msg": "Joining data…", "pct": 93})
