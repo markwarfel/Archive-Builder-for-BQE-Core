@@ -1,10 +1,13 @@
 from __future__ import annotations
-import json, secrets, urllib.error, urllib.parse, urllib.request
+import csv, io, json, secrets, urllib.error, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler
 
 import auth
 import bqe
 import join
+
+# Populated after a successful fetch; persists until the next fetch.
+_raw_cache: dict = {}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -64,6 +67,8 @@ class Handler(BaseHTTPRequestHandler):
             self._handle_debug(params)
         elif path == "/debug/time":
             self._handle_debug_time(params)
+        elif path.startswith("/download/"):
+            self._handle_download_csv(path[10:])
         elif path.startswith("/api/"):
             self._handle_api(path[5:], params)
         else:
@@ -200,7 +205,7 @@ class Handler(BaseHTTPRequestHandler):
             emit("progress", {"phase": "time", "msg": "Fetching time entries…", "pct": 22})
             time_entries = bqe.fetch_all(
                 "timeentry",
-                {"fields": "projectId,billable,extra,costRate,actualHours,billRate"},
+                {"fields": "projectId,billable,extra,costRate,actualHours,billRate,classification,resource"},
                 on_page=lambda n: emit("progress", {"phase": "time", "msg": f"Time entries: {n:,}…", "pct": 22}),
                 max_pages=max_pages,
             )
@@ -221,6 +226,14 @@ class Handler(BaseHTTPRequestHandler):
             emit("progress", {"phase": "join", "msg": "Joining data…", "pct": 93})
             result = join.join_data(projects, time_entries, expense_entries, invoices)
             emit("progress", {"phase": "join", "msg": f"{len(result):,} root projects joined", "pct": 99})
+
+            global _raw_cache
+            _raw_cache = {
+                "projects":       projects,
+                "time_entries":   time_entries,
+                "expense_entries": expense_entries,
+                "invoices":       invoices,
+            }
 
             emit("done", {
                 "projects": result,
@@ -296,20 +309,21 @@ class Handler(BaseHTTPRequestHandler):
                 "timeentry",
                 {
                     "where":  f"projectId='{phase_id}'",
-                    "fields": "id,projectId,billable,costRate,actualHours,clientHours,billRate,wudMultiplier",
+                    "fields": "projectId,billable,costRate,actualHours,billRate,classification,resource",
                 },
             )
-            cost = raw = adjusted = 0.0
+            cost = raw = 0.0
             billable_count = 0
+            role_hours: dict = {}
             for e in entries:
                 actual = e.get("actualHours") or 0
                 rate   = e.get("billRate") or 0
-                wud    = e.get("wudMultiplier") or 1.0
                 cost  += (e.get("costRate") or 0) * actual
                 if e.get("billable"):
                     billable_count += 1
-                    raw      += actual * rate
-                    adjusted += actual * rate * wud
+                    raw += actual * rate
+                key = e.get("classification") or f"${int(rate)}/hr"
+                role_hours[key] = role_hours.get(key, 0.0) + actual
 
             expenses = bqe.fetch_all(
                 "expenseentry",
@@ -326,14 +340,16 @@ class Handler(BaseHTTPRequestHandler):
                 if e.get("billable") and not e.get("extra"):
                     exp_charge_billable += charge
 
+            role_summary = sorted(role_hours.items(), key=lambda x: -x[1])
+
             self._send_json({
-                "projectId":       phase_id,
+                "projectId":  phase_id,
                 "time": {
                     "totalEntries":    len(entries),
                     "billableEntries": billable_count,
-                    "raw":             round(raw, 2),      # actualHours × billRate
-                    "adjusted":        round(adjusted, 2), # actualHours × billRate × wudMultiplier
+                    "raw":             round(raw, 2),
                     "cost":            round(cost, 2),
+                    "by_role":         [[k, round(h, 2)] for k, h in role_summary],
                 },
                 "expenses": {
                     "totalEntries":         len(expenses),
@@ -345,6 +361,78 @@ class Handler(BaseHTTPRequestHandler):
             })
         except Exception as exc:
             self._send_json({"error": str(exc)}, 500)
+
+    def _handle_download_csv(self, name: str):
+        """Serve a raw-data CSV from the most recent fetch."""
+        key_map = {
+            "projects.csv":     "projects",
+            "time-entries.csv": "time_entries",
+            "expenses.csv":     "expense_entries",
+            "invoices.csv":     "invoices",
+        }
+        key = key_map.get(name)
+        if not key:
+            self._send_json({"error": f"unknown dataset: {name}"}, 404)
+            return
+        if not _raw_cache:
+            self._send_json({"error": "no data — run a fetch first"}, 404)
+            return
+
+        rows = list(_raw_cache.get(key, []))
+
+        if key == "invoices":
+            flat = []
+            for inv in rows:
+                details = inv.get("invoiceDetails") or []
+                base = {k: v for k, v in inv.items() if k != "invoiceDetails"}
+                if not details:
+                    flat.append(base)
+                else:
+                    for d in details:
+                        flat.append({"invoiceId": base.get("id"), **base, **d})
+            rows = flat
+
+        # Enrich time entries, expenses, and invoice details with human-readable names.
+        # Prepend project_name / phase_name so they appear as the first columns.
+        if key in ("time_entries", "expense_entries", "invoices"):
+            by_id = {p["id"]: p for p in _raw_cache.get("projects", [])}
+            enriched = []
+            for row in rows:
+                pid = row.get("projectId")
+                proj = by_id.get(pid) if pid else None
+                if proj:
+                    parent = by_id.get(proj.get("parentId") or "")
+                    if parent:
+                        project_name = parent["name"]
+                        phase_name   = proj["name"]
+                    else:
+                        project_name = proj["name"]
+                        phase_name   = ""
+                else:
+                    project_name = phase_name = ""
+                enriched.append({"project_name": project_name, "phase_name": phase_name, **row})
+            rows = enriched
+
+        if not rows:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+            self.end_headers()
+            return
+
+        out = io.StringIO()
+        writer = csv.DictWriter(out, fieldnames=list(rows[0].keys()),
+                                extrasaction="ignore", lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+        body = ("﻿" + out.getvalue()).encode("utf-8")  # BOM for Excel
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/csv; charset=utf-8")
+        self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def _handle_api(self, subpath: str, params: dict):
         """Proxy GET requests to the BQE API; exposes /api/<path> for ad-hoc inspection."""

@@ -78,7 +78,10 @@ button{font-family:var(--sans);cursor:pointer}
 
 .detail{display:none;border-top:1px solid var(--hair);padding:4px 18px 18px}
 .proj.open .detail{display:block}
+.table-wrap{position:relative}
 .table-scroll{overflow-x:auto;margin:0 -18px;padding:0 18px}
+.scroll-fade{position:absolute;top:0;right:0;bottom:0;width:56px;background:linear-gradient(to right,transparent,var(--surface));pointer-events:none;transition:opacity .2s;border-radius:0 0 var(--radius) 0}
+.table-wrap.at-end .scroll-fade{opacity:0}
 table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:780px}
 thead th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:12px 10px 8px;border-bottom:1px solid var(--hair-strong);white-space:nowrap}
 .tip{display:inline-flex;align-items:center;justify-content:center;color:var(--muted);cursor:default;vertical-align:middle;margin-left:3px;flex-shrink:0;border:0;background:none;padding:0}
@@ -121,6 +124,28 @@ tfoot .ph-name{font-weight:700}
 .modal .formula{font-family:var(--mono);font-size:12.5px;background:var(--teal-soft);border:1px solid var(--hair-strong);border-radius:8px;padding:10px 12px;color:var(--ink);line-height:1.5}
 .modal-close{position:absolute;top:12px;right:14px;border:0;background:none;font-size:24px;color:var(--muted);cursor:pointer;line-height:1;padding:4px 8px}
 .modal-close:hover{color:var(--ink)}
+
+.col-toggles{margin-top:8px;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap}
+.col-toggles-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;flex-shrink:0}
+.col-toggle-wrap{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;white-space:nowrap}
+.col-toggle-wrap input{accent-color:var(--teal);cursor:pointer;width:13px;height:13px}
+
+.hours-col,.col-remaining,.col-profit,.col-profit-pct,.col-billed-pct,.col-spent-pct{display:none}
+body.show-hours .hours-col{display:table-cell}
+body.show-remaining .col-remaining{display:table-cell}
+body.show-profit .col-profit{display:table-cell}
+body.show-profit-pct .col-profit-pct{display:table-cell}
+body.show-billed-pct .col-billed-pct{display:table-cell}
+body.show-spent-pct .col-spent-pct{display:table-cell}
+
+.cv-neg{color:var(--jasper)}
+.cv-over{color:var(--jasper)}
+
+.hrs-total{display:block;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.role-detail{display:block;margin-top:5px}
+.role-row{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:var(--ink-soft);line-height:1.6}
+.role-lbl{white-space:nowrap}
+.role-hrs{font-family:var(--mono);font-variant-numeric:tabular-nums;flex-shrink:0}
 
 @media (max-width:680px){
   .proj-head{grid-template-columns:1fr auto 22px;gap:10px}

@@ -1,266 +1,718 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>__DOCTITLE__</title>
-<style>__STYLES__</style>
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>__DOCTITLE__</title>
+        <style>
+            __STYLES__
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            __BRAND_LOCKUP__
+            <div class="title-block">
+                <div class="eyebrow">Historical project archive</div>
+                <h1>__TITLE__</h1>
+            </div>
 
-<div class="wrap">
-  __BRAND_LOCKUP__
-  <div class="title-block">
-    <div class="eyebrow">Historical project archive</div>
-    <h1>__TITLE__</h1>
-  </div>
+            <div class="infl" role="group" aria-label="Inflation adjustment">
+                <span class="infl-label"
+                    ><span class="dot"></span>Inflation adjustment
+                    <button
+                        class="info-btn"
+                        id="infoBtn"
+                        aria-label="About the inflation adjustment"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            fill="currentColor"
+                            viewBox="0 0 256 256"
+                        >
+                            <path
+                                d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"
+                            ></path>
+                        </svg>
+                    </button>
+                </span>
+                <label class="toggle-wrap">
+                    <span class="switch"
+                        ><input type="checkbox" id="adjToggle" /><span
+                            class="slider"
+                        ></span
+                    ></span>
+                    Show today's dollars
+                </label>
+                <div class="infl-when-on">
+                    <div class="infl-group">
+                        <span class="infl-sub">Baseline</span>
+                        <span class="infl-fixed" id="baselineLabel"
+                            >2025 dollars</span
+                        >
+                    </div>
+                    <span class="infl-or">or enter a newer PPI value</span>
+                    <div class="infl-group">
+                        <input
+                            type="text"
+                            id="manualCpi"
+                            inputmode="decimal"
+                            placeholder="e.g. 208.0"
+                            aria-label="Manual PPI index value"
+                        />
+                        <button class="btn-apply" id="applyCpi">Apply</button>
+                    </div>
+                    <a
+                        class="source-link"
+                        href="https://fred.stlouisfed.org/series/PCU541330541330"
+                        target="_blank"
+                        rel="noopener"
+                        >FRED PCU541330541330 →</a
+                    >
+                    <div class="infl-status" id="inflStatus"></div>
+                </div>
+            </div>
 
-  <div class="infl" role="group" aria-label="Inflation adjustment">
-    <span class="infl-label"><span class="dot"></span>Inflation adjustment
-      <button class="info-btn" id="infoBtn" aria-label="About the inflation adjustment"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path></svg></button>
-    </span>
-    <label class="toggle-wrap">
-      <span class="switch"><input type="checkbox" id="adjToggle"><span class="slider"></span></span>
-      Show today's dollars
-    </label>
-    <div class="infl-when-on">
-      <div class="infl-group">
-        <span class="infl-sub">Baseline</span>
-        <span class="infl-fixed" id="baselineLabel">2025 dollars</span>
-      </div>
-      <span class="infl-or">or enter a newer PPI value</span>
-      <div class="infl-group">
-        <input type="text" id="manualCpi" inputmode="decimal" placeholder="e.g. 208.0" aria-label="Manual PPI index value">
-        <button class="btn-apply" id="applyCpi">Apply</button>
-      </div>
-      <a class="source-link" href="https://fred.stlouisfed.org/series/PCU541330541330" target="_blank" rel="noopener">FRED PCU541330541330 →</a>
-      <div class="infl-status" id="inflStatus"></div>
-    </div>
-  </div>
+            <div class="col-toggles" role="group" aria-label="Optional columns">
+                <span class="col-toggles-label">Columns</span>
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colRemaining" /> Budget
+                    remaining</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colProfit" /> Profit $</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colProfitPct" /> Profit %</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colBilledPct" /> % Billed</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="colSpentPct" /> % Spent</label
+                >
+                <label class="col-toggle-wrap"
+                    ><input type="checkbox" id="hoursToggle" /> Hours</label
+                >
+            </div>
 
-  <div class="controls">
-    <div class="search-row">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" id="search" placeholder="Search by project name or number…" autocomplete="off">
-    </div>
-  </div>
+            <div class="controls">
+                <div class="search-row">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    >
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input
+                        type="text"
+                        id="search"
+                        placeholder="Search by project name or number…"
+                        autocomplete="off"
+                    />
+                </div>
+            </div>
 
-  <main class="list" id="list" aria-live="polite"></main>
-</div>
+            <main class="list" id="list" aria-live="polite"></main>
+        </div>
 
-<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-  <div class="modal">
-    <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
-    <h2 id="modalTitle">How the price adjustment works</h2>
-    <p>Adjusted figures restate each historical dollar in the dollars of the year you pick, using the <strong>Producer Price Index for Architectural Services</strong> (BLS series <code>PCU541330541330</code>, not seasonally adjusted), annual averages. This tracks the price of architectural services specifically, which is more defensible for fee comparisons than a consumer price index.</p>
-    <p class="formula">adjusted = original &times; (PPI of selected year &divide; PPI of the phase's rate-table year)</p>
-    <p>Because it's a ratio of two endpoints, every year in between is already baked into those index levels — nothing is missed, even across a long gap.</p>
-    <p>To get the latest index value, visit <a href="https://fred.stlouisfed.org/series/PCU541330541330" target="_blank" rel="noopener">FRED PCU541330541330</a> and read the most recent annual average from the data table.</p>
-  </div>
-</div>
+        <div
+            class="modal-backdrop"
+            id="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modalTitle"
+        >
+            <div class="modal">
+                <button class="modal-close" id="modalClose" aria-label="Close">
+                    &times;
+                </button>
+                <h2 id="modalTitle">How the price adjustment works</h2>
+                <p>
+                    Adjusted figures restate each historical dollar in the
+                    dollars of the year you pick, using the
+                    <strong
+                        >Producer Price Index for Architectural Services</strong
+                    >
+                    (BLS series <code>PCU541330541330</code>, not seasonally
+                    adjusted), annual averages. This tracks the price of
+                    architectural services specifically, which is more
+                    defensible for fee comparisons than a consumer price index.
+                </p>
+                <p class="formula">
+                    adjusted = original &times; (PPI of selected year &divide;
+                    PPI of the phase's rate-table year)
+                </p>
+                <p>
+                    Because it's a ratio of two endpoints, every year in between
+                    is already baked into those index levels — nothing is
+                    missed, even across a long gap.
+                </p>
+                <p>
+                    To get the latest index value, visit
+                    <a
+                        href="https://fred.stlouisfed.org/series/PCU541330541330"
+                        target="_blank"
+                        rel="noopener"
+                        >FRED PCU541330541330</a
+                    >
+                    and read the most recent annual average from the data table.
+                </p>
+            </div>
+        </div>
 
-<script>
-// Producer Price Index for Architectural, Engineering, and Related Services
-// BLS series PCU54135413 (via FRED: fred.stlouisfed.org/series/PCU54135413)
-// Annual averages 2010–2025; 2026 is a partial average (Jan–May).
-const PPI_AE = {
-  "2010":143.5,"2011":145.5,"2012":147.5,"2013":149.9,
-  "2014":152.2,"2015":156.2,"2016":159.4,"2017":162.9,
-  "2018":166.5,"2019":170.1,"2020":170.6,"2021":174.9,
-  "2022":183.1,"2023":189.0,"2024":193.3,"2025":197.7,
-  "2026":200.8
-};
-const DEFAULT_YEAR = 2025;
+        <script>
+            // Producer Price Index for Architectural, Engineering, and Related Services
+            // BLS series PCU54135413 (via FRED: fred.stlouisfed.org/series/PCU54135413)
+            // Annual averages 2010–2025; 2026 is a partial average (Jan–May).
+            const PPI_AE = {
+                2010: 143.5,
+                2011: 145.5,
+                2012: 147.5,
+                2013: 149.9,
+                2014: 152.2,
+                2015: 156.2,
+                2016: 159.4,
+                2017: 162.9,
+                2018: 166.5,
+                2019: 170.1,
+                2020: 170.6,
+                2021: 174.9,
+                2022: 183.1,
+                2023: 189.0,
+                2024: 193.3,
+                2025: 197.7,
+                2026: 200.8,
+            };
+            const DEFAULT_YEAR = 2025;
 
-const PROJECTS = __PROJECTS__;
+            const PROJECTS = __PROJECTS__;
 
-const state = { level:PPI_AE[DEFAULT_YEAR], manual:false, showAdj:false, search:"" };
-const usd = n => "$" + Math.round(n).toLocaleString("en-US");
-const adj = (val, yr) => val * (state.level / (PPI_AE[yr] || PPI_AE[DEFAULT_YEAR]));
+            const state = {
+                level: PPI_AE[DEFAULT_YEAR],
+                manual: false,
+                showAdj: false,
+                search: "",
+            };
+            const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+            const adj = (val, yr) =>
+                val * (state.level / (PPI_AE[yr] || PPI_AE[DEFAULT_YEAR]));
 
-function projTotals(p){
-  return p.phases.reduce((t,ph)=>{
-    t.contract+=ph.contract; t.billed+=ph.billed; t.spent+=ph.spent; t.cost+=ph.cost;
-    t.contractAdj+=adj(ph.contract,ph.yr); t.billedAdj+=adj(ph.billed,ph.yr);
-    t.spentAdj+=adj(ph.spent,ph.yr); t.costAdj+=adj(ph.cost,ph.yr);
-    return t;
-  },{contract:0,billed:0,spent:0,cost:0,contractAdj:0,billedAdj:0,spentAdj:0,costAdj:0});
-}
+            function projTotals(p) {
+                return p.phases.reduce(
+                    (t, ph) => {
+                        t.contract += ph.contract;
+                        t.billed += ph.billed;
+                        t.spent += ph.spent;
+                        t.cost += ph.cost;
+                        t.hours += ph.hours || 0;
+                        t.contractAdj += adj(ph.contract, ph.yr);
+                        t.billedAdj += adj(ph.billed, ph.yr);
+                        t.spentAdj += adj(ph.spent, ph.yr);
+                        t.costAdj += adj(ph.cost, ph.yr);
+                        return t;
+                    },
+                    {
+                        contract: 0,
+                        billed: 0,
+                        spent: 0,
+                        cost: 0,
+                        hours: 0,
+                        contractAdj: 0,
+                        billedAdj: 0,
+                        spentAdj: 0,
+                        costAdj: 0,
+                    },
+                );
+            }
 
-function renderStatus(){
-  const lvl=state.level.toFixed(1);
-  const yrTxt=state.manual?"a custom PPI value":DEFAULT_YEAR+" dollars";
-  document.getElementById("inflStatus").innerHTML=
-    "Showing values in <b>"+yrTxt+"</b> &middot; A/E Services PPI <b>"+lvl+"</b>"+
-    (state.manual?" (manual)":" (annual avg · FRED PCU541330541330)");
-}
+            function renderStatus() {
+                const lvl = state.level.toFixed(1);
+                const yrTxt = state.manual
+                    ? "a custom PPI value"
+                    : DEFAULT_YEAR + " dollars";
+                document.getElementById("inflStatus").innerHTML =
+                    "Showing values in <b>" +
+                    yrTxt +
+                    "</b> &middot; A/E Services PPI <b>" +
+                    lvl +
+                    "</b>" +
+                    (state.manual
+                        ? " (manual)"
+                        : " (annual avg · FRED PCU541330541330)");
+            }
 
-function tip(text){
-  return '<span class="tip" tabindex="0" data-tip="'+text.replace(/"/g,'&quot;')+'">' +
-    '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 256 256">' +
-    '<path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path>' +
-    '</svg></span>';
-}
+            function tip(text) {
+                return (
+                    '<span class="tip" tabindex="0" data-tip="' +
+                    text.replace(/"/g, "&quot;") +
+                    '">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 256 256">' +
+                    '<path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path>' +
+                    "</svg></span>"
+                );
+            }
 
-function marginBar(billed,cost){
-  if(!cost) return '<div class="margin-bar"><span class="m-val">—</span></div>';
-  const r=billed/cost, loss=r<1, w=Math.max(2,Math.min(r,2)/2*100);
-  return '<div class="margin-bar"><div class="m-track"><div class="m-mark"></div>'+
-         '<div class="m-fill '+(loss?'loss':'')+'" style="width:'+w+'%"></div></div>'+
-         '<span class="m-val '+(loss?'loss':'')+'">'+r.toFixed(2)+'×</span></div>';
-}
-function miniMargin(billed,cost){
-  if(!cost) return '<div class="mini-margin"><span class="ml">Margin</span>—</div>';
-  const r=billed/cost;
-  return '<div class="mini-margin '+(r<1?'loss':'')+'"><span class="ml">Margin</span>'+r.toFixed(2)+'×</div>';
-}
-function moneyCell(val,yr){
-  return '<td class="num"><span class="h">'+usd(val)+'</span><span class="a">'+usd(adj(val,yr))+'</span></td>';
-}
-function allHourlyNoContract(p){
-  return p.phases.length>0 && p.phases.every(ph=>ph.bill==='hourly' && (!ph.contract||ph.contract===0));
-}
-function phaseTable(p){
-  const t=projTotals(p);
-  const rows=p.phases.map(ph=>
-    '<tr><td class="ph-name">'+ph.phase+'<span class="yr">Started '+ph.yr+'</span></td>'+
-    '<td><span class="bill '+ph.bill+'">'+ph.bill+'</span></td>'+
-    moneyCell(ph.contract,ph.yr)+moneyCell(ph.billed,ph.yr)+moneyCell(ph.spent,ph.yr)+moneyCell(ph.cost,ph.yr)+
-    '<td class="margin-cell">'+marginBar(ph.billed,ph.cost)+'</td></tr>').join("");
-  return '<div class="detail"><div class="table-scroll"><table>'+
-    '<thead><tr>'+
-    '<th class="l"><span class="th-label">Phase</span></th>'+
-    '<th class="l"><span class="th-label">Billing'+tip('Billing method — fixed fee or hourly (time & materials)')+'</span></th>'+
-    '<th><span class="th-label">Contract'+tip('Contracted fee amount for this phase')+'</span></th>'+
-    '<th><span class="th-label">Contract billed'+tip('Fees invoiced to the client, excluding reimbursable expense pass-throughs (Billed Extra)')+'</span></th>'+
-    '<th><span class="th-label">Budget spent'+tip('Billable hours × bill rate. May differ slightly from BQE Core for phases with legacy entries not accessible via the API.')+'</span></th>'+
-    '<th><span class="th-label">Cost'+tip('Staff time at cost rates plus non-reimbursable expenses')+'</span></th>'+
-    '<th><span class="th-label">Margin'+tip('Billed ÷ cost — above 1.0× is profitable; the bar midpoint marks break-even')+'</span></th>'+
-    '</tr></thead>'+
-    '<tbody>'+rows+'</tbody>'+
-    '<tfoot><tr><td class="ph-name">Total</td><td></td>'+
-    '<td class="num"><span class="h">'+usd(t.contract)+'</span><span class="a">'+usd(t.contractAdj)+'</span></td>'+
-    '<td class="num"><span class="h">'+usd(t.billed)+'</span><span class="a">'+usd(t.billedAdj)+'</span></td>'+
-    '<td class="num"><span class="h">'+usd(t.spent)+'</span><span class="a">'+usd(t.spentAdj)+'</span></td>'+
-    '<td class="num"><span class="h">'+usd(t.cost)+'</span><span class="a">'+usd(t.costAdj)+'</span></td>'+
-    '<td class="margin-cell">'+marginBar(t.billed,t.cost)+'</td></tr></tfoot></table></div></div>';
-}
-function renderList(){
-  const list=document.getElementById("list");
-  const visible=PROJECTS.filter(p=>{
-    const q=state.search.toLowerCase();
-    return !q||p.name.toLowerCase().includes(q)||p.num.toLowerCase().includes(q);
-  });
-  if(!visible.length){
-    list.innerHTML='<div class="empty"><b>No projects match.</b> Try a different name or number.</div>';
-    return;
-  }
-  list.innerHTML=visible.map(p=>{
-    const t=projTotals(p);
-    const yrs=p.phases.map(ph=>ph.yr);
-    const span=Math.min.apply(null,yrs)+'–'+Math.max.apply(null,yrs);
-    return '<article class="proj">'+
-      '<button class="proj-head" aria-expanded="false">'+
-        '<span class="proj-num">#'+p.num+'</span>'+
-        '<span class="proj-id-block"><span class="proj-name">'+p.name+'</span>'+
-          '<span class="proj-meta">'+p.phases.length+' phase'+(p.phases.length!==1?'s':'')+' · started '+span+'</span></span>'+
-        '<span class="proj-totals">'+
-          '<span class="proj-money">'+(allHourlyNoContract(p)
-              ? '<span class="h" style="color:var(--muted);font-size:13px">Hourly — open to view</span>'
-              : '<span class="h">'+usd(t.contract)+'</span> <span class="a">&asymp; '+usd(t.contractAdj)+'</span>')+'</span>'+
-          miniMargin(t.billed,t.cost)+
-        '</span>'+
-        '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>'+
-      '</button>'+phaseTable(p)+'</article>';
-  }).join("");
-  list.querySelectorAll(".proj-head").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const card=btn.closest(".proj");
-      btn.setAttribute("aria-expanded",card.classList.toggle("open"));
-    });
-  });
-}
+            function marginBar(billed, cost) {
+                if (!cost)
+                    return '<div class="margin-bar"><span class="m-val">—</span></div>';
+                const r = billed / cost,
+                    loss = r < 1,
+                    w = Math.max(2, (Math.min(r, 2) / 2) * 100);
+                return (
+                    '<div class="margin-bar"><div class="m-track"><div class="m-mark"></div>' +
+                    '<div class="m-fill ' +
+                    (loss ? "loss" : "") +
+                    '" style="width:' +
+                    w +
+                    '%"></div></div>' +
+                    '<span class="m-val ' +
+                    (loss ? "loss" : "") +
+                    '">' +
+                    r.toFixed(2) +
+                    "×</span></div>"
+                );
+            }
+            function miniMargin(billed, cost) {
+                if (!cost)
+                    return '<div class="mini-margin"><span class="ml">Margin</span>—</div>';
+                const r = billed / cost;
+                return (
+                    '<div class="mini-margin ' +
+                    (r < 1 ? "loss" : "") +
+                    '"><span class="ml">Margin</span>' +
+                    r.toFixed(2) +
+                    "×</div>"
+                );
+            }
+            function moneyCell(val, yr) {
+                return (
+                    '<td class="num"><span class="h">' +
+                    usd(val) +
+                    '</span><span class="a">' +
+                    usd(adj(val, yr)) +
+                    "</span></td>"
+                );
+            }
+            function pct(n, d) {
+                return d ? (n / d) * 100 : null;
+            }
+            function fmtPct(v) {
+                return v == null ? "—" : v.toFixed(1) + "%";
+            }
+            function computedCells(ph, t) {
+                // t=true means tfoot row (use t object); false means phase row (use ph)
+                var src = ph;
+                var rem = src.contract - src.spent;
+                var prof = src.billed - src.cost;
+                var profP = pct(prof, src.billed);
+                var bilP = pct(src.billed, src.contract);
+                var spP = pct(src.spent, src.contract);
+                var neg = function (v, fmt) {
+                    return v != null && v < 0
+                        ? '<span class="cv-neg">' + fmt(v) + "</span>"
+                        : fmt(v);
+                };
+                var ov = function (v, fmt) {
+                    return v != null && v > 100
+                        ? '<span class="cv-over">' + fmt(v) + "</span>"
+                        : fmt(v);
+                };
+                return (
+                    '<td class="num col-remaining">' +
+                    neg(rem, usd) +
+                    "</td>" +
+                    '<td class="num col-profit">' +
+                    neg(prof, usd) +
+                    "</td>" +
+                    '<td class="num col-profit-pct">' +
+                    neg(profP, fmtPct) +
+                    "</td>" +
+                    '<td class="num col-billed-pct">' +
+                    ov(bilP, fmtPct) +
+                    "</td>" +
+                    '<td class="num col-spent-pct">' +
+                    ov(spP, fmtPct) +
+                    "</td>"
+                );
+            }
+            function hoursCell(hours, buckets) {
+                var rows = (buckets || [])
+                    .map(function (b) {
+                        return (
+                            '<span class="role-row"><span class="role-lbl">' +
+                            b[0] +
+                            '</span><span class="role-hrs">' +
+                            b[1].toFixed(1) +
+                            "h</span></span>"
+                        );
+                    })
+                    .join("");
+                return (
+                    '<td class="num hours-col"><span class="hrs-total">' +
+                    (hours || 0).toFixed(1) +
+                    "h</span>" +
+                    (rows
+                        ? '<span class="role-detail">' + rows + "</span>"
+                        : "") +
+                    " </td>"
+                );
+            }
+            function allHourlyNoContract(p) {
+                return (
+                    p.phases.length > 0 &&
+                    p.phases.every(
+                        (ph) =>
+                            ph.bill === "hourly" &&
+                            (!ph.contract || ph.contract === 0),
+                    )
+                );
+            }
+            function phaseTable(p) {
+                const t = projTotals(p);
+                const rows = p.phases
+                    .map(
+                        (ph) =>
+                            '<tr><td class="ph-name">' +
+                            ph.phase +
+                            '<span class="yr">Started ' +
+                            ph.yr +
+                            "</span></td>" +
+                            '<td><span class="bill ' +
+                            ph.bill +
+                            '">' +
+                            ph.bill +
+                            "</span></td>" +
+                            moneyCell(ph.contract, ph.yr) +
+                            moneyCell(ph.billed, ph.yr) +
+                            moneyCell(ph.spent, ph.yr) +
+                            moneyCell(ph.cost, ph.yr) +
+                            computedCells(ph) +
+                            hoursCell(ph.hours, ph.role_buckets) +
+                            '<td class="margin-cell">' +
+                            marginBar(ph.billed, ph.cost) +
+                            "</td></tr>",
+                    )
+                    .join("");
+                return (
+                    '<div class="detail table-wrap"><div><div class="table-scroll"><table>' +
+                    "<thead><tr>" +
+                    '<th class="l"><span class="th-label">Phase</span></th>' +
+                    '<th class="l"><span class="th-label">Billing' +
+                    tip(
+                        "Billing method — fixed fee or hourly (time & materials)",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Contract' +
+                    tip("Contracted fee amount for this phase") +
+                    "</span></th>" +
+                    '<th><span class="th-label">Contract billed' +
+                    tip(
+                        "Fees invoiced to the client, excluding reimbursable expense pass-throughs (Billed Extra)",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Budget spent' +
+                    tip(
+                        "Billable hours × bill rate. May differ slightly from BQE Core for phases with legacy entries not accessible via the API.",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Cost' +
+                    tip(
+                        "Staff time at cost rates plus non-reimbursable expenses",
+                    ) +
+                    "</span></th>" +
+                    '<th class="col-remaining"><span class="th-label">Budget remaining' +
+                    tip("Contract minus budget spent") +
+                    "</span></th>" +
+                    '<th class="col-profit"><span class="th-label">Profit $' +
+                    tip("Contract billed minus cost") +
+                    "</span></th>" +
+                    '<th class="col-profit-pct"><span class="th-label">Profit %' +
+                    tip("(Billed − cost) ÷ billed") +
+                    "</span></th>" +
+                    '<th class="col-billed-pct"><span class="th-label">% Billed' +
+                    tip("Contract billed as a percentage of contracted fee") +
+                    "</span></th>" +
+                    '<th class="col-spent-pct"><span class="th-label">% Spent' +
+                    tip("Budget spent as a percentage of contracted fee") +
+                    "</span></th>" +
+                    '<th class="hours-col"><span class="th-label">Hours' +
+                    tip(
+                        "Total hours logged per role — all staff, billable and non-billable",
+                    ) +
+                    "</span></th>" +
+                    '<th><span class="th-label">Margin' +
+                    tip(
+                        "Billed ÷ cost — above 1.0× is profitable; the bar midpoint marks break-even",
+                    ) +
+                    "</span></th>" +
+                    "</tr></thead>" +
+                    "<tbody>" +
+                    rows +
+                    "</tbody>" +
+                    '<tfoot><tr><td class="ph-name">Total</td><td></td>' +
+                    '<td class="num"><span class="h">' +
+                    usd(t.contract) +
+                    '</span><span class="a">' +
+                    usd(t.contractAdj) +
+                    "</span></td>" +
+                    '<td class="num"><span class="h">' +
+                    usd(t.billed) +
+                    '</span><span class="a">' +
+                    usd(t.billedAdj) +
+                    "</span></td>" +
+                    '<td class="num"><span class="h">' +
+                    usd(t.spent) +
+                    '</span><span class="a">' +
+                    usd(t.spentAdj) +
+                    "</span></td>" +
+                    '<td class="num"><span class="h">' +
+                    usd(t.cost) +
+                    '</span><span class="a">' +
+                    usd(t.costAdj) +
+                    "</span></td>" +
+                    computedCells(t) +
+                    '<td class="num hours-col">' +
+                    t.hours.toFixed(1) +
+                    "h</td>" +
+                    '<td class="margin-cell">' +
+                    marginBar(t.billed, t.cost) +
+                    '</td></tr></tfoot></table></div><div class="scroll-fade"></div></div></div>'
+                );
+            }
+            function renderList() {
+                const list = document.getElementById("list");
+                const visible = PROJECTS.filter((p) => {
+                    const q = state.search.toLowerCase();
+                    return (
+                        !q ||
+                        p.name.toLowerCase().includes(q) ||
+                        p.num.toLowerCase().includes(q)
+                    );
+                });
+                if (!visible.length) {
+                    list.innerHTML =
+                        '<div class="empty"><b>No projects match.</b> Try a different name or number.</div>';
+                    return;
+                }
+                list.innerHTML = visible
+                    .map((p) => {
+                        const t = projTotals(p);
+                        const yrs = p.phases.map((ph) => ph.yr);
+                        const span =
+                            Math.min.apply(null, yrs) +
+                            "–" +
+                            Math.max.apply(null, yrs);
+                        return (
+                            '<article class="proj">' +
+                            '<button class="proj-head" aria-expanded="false">' +
+                            '<span class="proj-num">#' +
+                            p.num +
+                            "</span>" +
+                            '<span class="proj-id-block"><span class="proj-name">' +
+                            p.name +
+                            "</span>" +
+                            '<span class="proj-meta">' +
+                            p.phases.length +
+                            " phase" +
+                            (p.phases.length !== 1 ? "s" : "") +
+                            " · started " +
+                            span +
+                            "</span></span>" +
+                            '<span class="proj-totals">' +
+                            '<span class="proj-money">' +
+                            (allHourlyNoContract(p)
+                                ? '<span class="h" style="color:var(--muted);font-size:13px">Hourly — open to view</span>'
+                                : '<span class="h">' +
+                                  usd(t.contract) +
+                                  '</span> <span class="a">&asymp; ' +
+                                  usd(t.contractAdj) +
+                                  "</span>") +
+                            "</span>" +
+                            miniMargin(t.billed, t.cost) +
+                            "</span>" +
+                            '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>' +
+                            "</button>" +
+                            phaseTable(p) +
+                            "</article>"
+                        );
+                    })
+                    .join("");
+                list.querySelectorAll(".proj-head").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        const card = btn.closest(".proj");
+                        btn.setAttribute(
+                            "aria-expanded",
+                            card.classList.toggle("open"),
+                        );
+                        if (card.classList.contains("open")) {
+                            requestAnimationFrame(function () {
+                                const ts = card.querySelector(".table-scroll");
+                                if (ts)
+                                    ts.parentElement.classList.toggle(
+                                        "at-end",
+                                        ts.scrollLeft + ts.clientWidth >=
+                                            ts.scrollWidth - 2,
+                                    );
+                            });
+                        }
+                    });
+                });
+                // Update indicator as user scrolls any table
+                list.addEventListener(
+                    "scroll",
+                    function (e) {
+                        const ts = e.target;
+                        if (!ts.classList.contains("table-scroll")) return;
+                        ts.parentElement.classList.toggle(
+                            "at-end",
+                            ts.scrollLeft + ts.clientWidth >=
+                                ts.scrollWidth - 2,
+                        );
+                    },
+                    true,
+                );
+            }
 
-function applyManual(){
-  const raw=parseFloat(document.getElementById("manualCpi").value);
-  const lbl=document.getElementById("baselineLabel");
-  if(!isFinite(raw)||raw<=0){
-    document.getElementById("manualCpi").value="";
-    state.level=PPI_AE[DEFAULT_YEAR];state.manual=false;
-    if(lbl) lbl.textContent="2025 dollars";
-    refresh();return;
-  }
-  state.level=raw;state.manual=true;
-  if(lbl) lbl.textContent="custom PPI "+raw;
-  refresh();
-}
-function refresh(){renderStatus();renderList();}
+            function applyManual() {
+                const raw = parseFloat(
+                    document.getElementById("manualCpi").value,
+                );
+                const lbl = document.getElementById("baselineLabel");
+                if (!isFinite(raw) || raw <= 0) {
+                    document.getElementById("manualCpi").value = "";
+                    state.level = PPI_AE[DEFAULT_YEAR];
+                    state.manual = false;
+                    if (lbl) lbl.textContent = "2025 dollars";
+                    refresh();
+                    return;
+                }
+                state.level = raw;
+                state.manual = true;
+                if (lbl) lbl.textContent = "custom PPI " + raw;
+                refresh();
+            }
+            function refresh() {
+                renderStatus();
+                renderList();
+            }
 
-const adjToggle=document.getElementById("adjToggle");
-adjToggle.addEventListener("change",()=>{
-  state.showAdj=adjToggle.checked;
-  document.body.classList.toggle("no-adj",!state.showAdj);
-});
+            const adjToggle = document.getElementById("adjToggle");
+            adjToggle.addEventListener("change", () => {
+                state.showAdj = adjToggle.checked;
+                document.body.classList.toggle("no-adj", !state.showAdj);
+            });
+            [
+                ["hoursToggle", "show-hours"],
+                ["colRemaining", "show-remaining"],
+                ["colProfit", "show-profit"],
+                ["colProfitPct", "show-profit-pct"],
+                ["colBilledPct", "show-billed-pct"],
+                ["colSpentPct", "show-spent-pct"],
+            ].forEach(function (pair) {
+                document
+                    .getElementById(pair[0])
+                    .addEventListener("change", function () {
+                        document.body.classList.toggle(pair[1], this.checked);
+                    });
+            });
 
-const modal=document.getElementById("modal");
-function openModal(){modal.classList.add("open");document.getElementById("modalClose").focus();}
-function closeModal(){modal.classList.remove("open");document.getElementById("infoBtn").focus();}
-document.getElementById("infoBtn").addEventListener("click",openModal);
-document.getElementById("modalClose").addEventListener("click",closeModal);
-modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modal.classList.contains("open"))closeModal();});
+            const modal = document.getElementById("modal");
+            function openModal() {
+                modal.classList.add("open");
+                document.getElementById("modalClose").focus();
+            }
+            function closeModal() {
+                modal.classList.remove("open");
+                document.getElementById("infoBtn").focus();
+            }
+            document
+                .getElementById("infoBtn")
+                .addEventListener("click", openModal);
+            document
+                .getElementById("modalClose")
+                .addEventListener("click", closeModal);
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) closeModal();
+            });
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && modal.classList.contains("open"))
+                    closeModal();
+            });
 
-document.getElementById("applyCpi").addEventListener("click",applyManual);
-document.getElementById("manualCpi").addEventListener("keydown",e=>{if(e.key==="Enter")applyManual();});
-document.getElementById("search").addEventListener("input",e=>{state.search=e.target.value;renderList();});
+            document
+                .getElementById("applyCpi")
+                .addEventListener("click", applyManual);
+            document
+                .getElementById("manualCpi")
+                .addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") applyManual();
+                });
+            document.getElementById("search").addEventListener("input", (e) => {
+                state.search = e.target.value;
+                renderList();
+            });
 
-// Tooltip for column header (i) buttons — uses position:fixed to escape overflow:auto table container
-(function(){
-  let tt;
-  function getTooltip(){
-    if(!tt){
-      tt=document.createElement("div");
-      tt.style.cssText="position:fixed;z-index:999;background:#1d211d;color:#fff;font-size:11.5px;"+
-        "line-height:1.45;padding:6px 10px;border-radius:6px;max-width:220px;pointer-events:none;"+
-        "opacity:0;transition:opacity .15s;font-family:system-ui,sans-serif;font-style:normal;font-weight:400";
-      document.body.appendChild(tt);
-    }
-    return tt;
-  }
-  document.addEventListener("mouseover",function(e){
-    const el=e.target.closest(".tip");
-    if(!el)return;
-    const t=getTooltip();
-    t.textContent=el.dataset.tip;
-    t.style.opacity="0";
-    t.style.display="block";
-    const r=el.getBoundingClientRect();
-    const w=t.offsetWidth;
-    let left=r.left+r.width/2-w/2;
-    left=Math.max(8,Math.min(left,window.innerWidth-w-8));
-    t.style.left=left+"px";
-    t.style.top=(r.top-t.offsetHeight-6)+"px";
-    t.style.opacity="1";
-  });
-  document.addEventListener("mouseout",function(e){
-    if(!e.target.closest(".tip"))return;
-    const t=getTooltip();
-    t.style.opacity="0";
-  });
-  document.addEventListener("focusin",function(e){
-    const el=e.target.closest(".tip");
-    if(!el)return;
-    el.dispatchEvent(new MouseEvent("mouseover",{bubbles:true}));
-  });
-  document.addEventListener("focusout",function(e){
-    if(!e.target.closest(".tip"))return;
-    const t=getTooltip();
-    if(t)t.style.opacity="0";
-  });
-})();
+            // Tooltip for column header (i) buttons — uses position:fixed to escape overflow:auto table container
+            (function () {
+                let tt;
+                function getTooltip() {
+                    if (!tt) {
+                        tt = document.createElement("div");
+                        tt.style.cssText =
+                            "position:fixed;z-index:999;background:#1d211d;color:#fff;font-size:11.5px;" +
+                            "line-height:1.45;padding:6px 10px;border-radius:6px;max-width:220px;pointer-events:none;" +
+                            "opacity:0;transition:opacity .15s;font-family:system-ui,sans-serif;font-style:normal;font-weight:400";
+                        document.body.appendChild(tt);
+                    }
+                    return tt;
+                }
+                document.addEventListener("mouseover", function (e) {
+                    const el = e.target.closest(".tip");
+                    if (!el) return;
+                    const t = getTooltip();
+                    t.textContent = el.dataset.tip;
+                    t.style.opacity = "0";
+                    t.style.display = "block";
+                    const r = el.getBoundingClientRect();
+                    const w = t.offsetWidth;
+                    let left = r.left + r.width / 2 - w / 2;
+                    left = Math.max(
+                        8,
+                        Math.min(left, window.innerWidth - w - 8),
+                    );
+                    t.style.left = left + "px";
+                    t.style.top = r.top - t.offsetHeight - 6 + "px";
+                    t.style.opacity = "1";
+                });
+                document.addEventListener("mouseout", function (e) {
+                    if (!e.target.closest(".tip")) return;
+                    const t = getTooltip();
+                    t.style.opacity = "0";
+                });
+                document.addEventListener("focusin", function (e) {
+                    const el = e.target.closest(".tip");
+                    if (!el) return;
+                    el.dispatchEvent(
+                        new MouseEvent("mouseover", { bubbles: true }),
+                    );
+                });
+                document.addEventListener("focusout", function (e) {
+                    if (!e.target.closest(".tip")) return;
+                    const t = getTooltip();
+                    if (t) t.style.opacity = "0";
+                });
+            })();
 
-document.body.classList.toggle("no-adj", !state.showAdj);
-refresh();
-</script>
-</body>
+            document.body.classList.toggle("no-adj", !state.showAdj);
+            refresh();
+        </script>
+    </body>
 </html>

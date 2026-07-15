@@ -2,7 +2,7 @@
 """
 BQE Core Archive Builder — local server
 Run: python3 server.py
-Then open http://127.0.0.1:8080 (opens automatically)
+Then open http://localhost:8080 (opens automatically)
 """
 import webbrowser
 from http.server import HTTPServer
@@ -19,8 +19,8 @@ class _Server(ThreadingMixIn, HTTPServer):
 
 def main():
     auth.load_tokens()
-    server = _Server(("127.0.0.1", auth.PORT), Handler)
-    url = f"http://127.0.0.1:{auth.PORT}"
+    server = _Server(("localhost", auth.PORT), Handler)
+    url = f"http://localhost:{auth.PORT}"
     print(f"BQE Archive Builder → {url}")
     print("Press Ctrl+C to stop.\n")
     try:

@@ -46,7 +46,7 @@
   .field-note{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
 
   /* buttons */
-  .btn{display:inline-flex;align-items:center;gap:7px;font-family:var(--sans);font-size:14px;font-weight:650;border-radius:9px;padding:10px 20px;cursor:pointer;border:none;transition:filter .15s}
+  .btn{display:inline-flex;align-items:center;gap:7px;font-family:var(--sans);font-size:14px;font-weight:650;border-radius:9px;padding:10px 20px;cursor:pointer;border:none;transition:filter .15s;text-decoration:none}
   .btn-primary{background:var(--orange);color:#fff}
   .btn-primary:hover{filter:brightness(.92)}
   .btn-primary:disabled{opacity:.45;cursor:not-allowed}
@@ -224,6 +224,17 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
       Build &amp; download archive
     </button>
+
+    <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)">
+      <div class="review-h">Export raw data</div>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">Download everything pulled from the BQE API as CSV — one file per data type, ready for import into other tools.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn btn-ghost" href="/download/projects.csv" download>Projects</a>
+        <a class="btn btn-ghost" href="/download/time-entries.csv" download>Time entries</a>
+        <a class="btn btn-ghost" href="/download/expenses.csv" download>Expenses</a>
+        <a class="btn btn-ghost" href="/download/invoices.csv" download>Invoices</a>
+      </div>
+    </div>
   </section>
 
   <div class="legal">BQE Core® and BQE® are trademarks of BQE Software, Inc. This tool is an independent, unofficial utility — not created, endorsed, or affiliated with BQE Software, Inc. Provided "as is," without warranty of any kind.</div>
