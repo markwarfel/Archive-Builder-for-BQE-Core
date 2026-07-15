@@ -64,10 +64,11 @@ Review & build.**
 
 ### Preview without connecting
 
-A ready-made demo built from **fake sample data** is included:
-
-- **[▶ View the sample archive live](https://htmlpreview.github.io/?https://github.com/markwarfel/Archive-Builder-for-BQE-Core/blob/main/sample-archive.html)** — rendered right in your browser, nothing to install (via htmlpreview.github.io).
-- Or **[open the file on GitHub](sample-archive.html)** and click **Download raw file** to save it and open it locally.
+A ready-made demo built from **fake sample data** is included —
+**[download the sample archive](https://github.com/markwarfel/Archive-Builder-for-BQE-Core/releases/latest/download/sample-archive.html)**
+and open it in any browser. (It's also in the repo as
+[`sample-archive.html`](sample-archive.html) — on GitHub, use **Download raw
+file** to save it, since GitHub shows `.html` as source in the browser.)
 
 To regenerate it yourself (no BQE account needed):
 
