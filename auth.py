@@ -1,5 +1,5 @@
 from __future__ import annotations
-import base64, hashlib, json, secrets, urllib.error, urllib.parse, urllib.request
+import base64, hashlib, json, secrets, time, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 
 PORT         = 8080
@@ -72,6 +72,20 @@ def exchange_code(code: str, code_verifier: str, client_id: str) -> dict:
     req.add_header("Content-Type", "application/x-www-form-urlencoded")
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
+
+
+def access_token_seconds_left() -> int | None:
+    """Seconds until the access token expires, read from its JWT `exp` claim.
+
+    Returns None if there's no token or it isn't a decodable JWT (callers should
+    then just try the request).
+    """
+    try:
+        payload = tokens["access_token"].split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        return int(json.loads(base64.urlsafe_b64decode(payload))["exp"] - time.time())
+    except Exception:
+        return None
 
 
 def refresh_access_token() -> bool:

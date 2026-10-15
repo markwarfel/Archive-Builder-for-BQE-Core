@@ -51,6 +51,9 @@
   .btn-primary:disabled{opacity:.45;cursor:not-allowed}
   .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line2);font-size:13px;padding:7px 14px}
   .btn-ghost:hover{border-color:var(--line);color:var(--navy)}
+  /* re-run actions (Refetch) — navy so they don't read as file downloads */
+  .btn-refetch{background:var(--navy);color:#fff;font-size:13px;padding:7px 14px}
+  .btn-refetch:hover{filter:brightness(1.25)}
 
   /* setup instructions */
   .readme-link{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--orange);font-weight:600;text-decoration:none;margin-bottom:14px}
@@ -101,7 +104,7 @@
 
   <header class="top">
     <h1>Archive Builder for BQE Core</h1>
-    <div class="sub">Pulls project &amp; time data directly from your BQE Core account and builds a self-contained historical archive.</div>
+    <div class="sub">Pulls project &amp; time data directly from your BQE Core account and builds a self-contained historical archive — plus an optional full export of your raw data.</div>
   </header>
 
   <!-- ── Step 1: connect ────────────────────────────────────────────────────── -->
@@ -151,14 +154,14 @@
 
   <!-- ── Step 2: fetch data ─────────────────────────────────────────────────── -->
   <section class="step" id="stepFetch" hidden>
-    <div class="step-h"><span class="step-n">2</span><span class="step-t">Fetch data from BQE Core</span></div>
+    <div class="step-h"><span class="step-n">2</span><span class="step-t">Fetch archive data</span></div>
 
     <!-- idle -->
     <div id="fetchIdle">
       <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
-        Pulls all projects, time entries, expense entries, and invoices from your account. For 15 years of data this typically takes 1–4 minutes.
+        Pulls projects, time, expenses, and invoices — just what the archive needs. For 15 years of data this typically takes 2–4 minutes.
       </p>
-      <button class="btn btn-primary" id="btnFetch">Fetch all data</button>
+      <button class="btn btn-primary" id="btnFetch">Fetch archive data</button>
       <div class="errline" id="fetchErr" hidden></div>
     </div>
 
@@ -171,7 +174,7 @@
     <!-- done -->
     <div id="fetchDone" hidden>
       <div class="fetch-summary" id="fetchSummary"></div>
-      <button class="btn btn-ghost" id="btnRefetch" style="margin-top:2px">Refetch data</button>
+      <button class="btn btn-refetch" id="btnRefetch" style="margin-top:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>Refetch data</button>
     </div>
   </section>
 
@@ -196,7 +199,7 @@
       <div class="brand-grid">
         <label class="field">
           <span>Firm name</span>
-          <input type="text" id="brandFirm" placeholder="Crowley Cottrell">
+          <input type="text" id="brandFirm" placeholder="Your firm name">
         </label>
         <label class="field">
           <span>Archive title</span>
@@ -217,14 +220,45 @@
       Build &amp; download archive
     </button>
 
-    <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)">
-      <div class="review-h">Export raw data</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">Download everything pulled from the BQE API as CSV — one file per data type, ready for import into other tools.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+  </section>
+
+  <!-- ── Raw data export (independent of the archive) ──────────────────────── -->
+  <section class="step" id="stepExport" hidden>
+    <div class="step-h"><span class="step-n"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></span><span class="step-t">Export raw data</span></div>
+
+    <div id="exportIdle">
+      <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
+        Separate from the archive. Pulls complete records — every field — for projects, time, expenses, invoices, payments, vendor bills, clients, contacts, notes, activities, and expense items, then lets you download them as CSV or one JSON file. For 15 years of data this typically takes 5–15 minutes — keep this tab open until it finishes.
+      </p>
+      <button class="btn btn-primary" id="btnExport">Fetch full export</button>
+      <div class="errline" id="exportErr" hidden></div>
+    </div>
+
+    <div id="exportRunning" hidden>
+      <div class="fetch-bar-track"><div class="fetch-bar-fill" id="exportBarFill"></div></div>
+      <div class="fetch-msg" id="exportMsg">Starting…</div>
+    </div>
+
+    <div id="exportDone" hidden>
+      <div class="fetch-summary" id="exportSummary"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
         <a class="btn btn-ghost" href="/download/projects.csv" download>Projects</a>
         <a class="btn btn-ghost" href="/download/time-entries.csv" download>Time entries</a>
         <a class="btn btn-ghost" href="/download/expenses.csv" download>Expenses</a>
         <a class="btn btn-ghost" href="/download/invoices.csv" download>Invoices</a>
+        <a class="btn btn-ghost" href="/download/payments.csv" download>Payments</a>
+        <a class="btn btn-ghost" href="/download/vendor-bills.csv" download>Vendor bills</a>
+        <a class="btn btn-ghost" href="/download/clients.csv" download>Clients</a>
+        <a class="btn btn-ghost" href="/download/contacts.csv" download>Contacts</a>
+        <a class="btn btn-ghost" href="/download/notes.csv" download>Notes</a>
+        <a class="btn btn-ghost" href="/download/activities.csv" download>Activities</a>
+        <a class="btn btn-ghost" href="/download/expense-items.csv" download>Expense items</a>
+      </div>
+      <div style="margin-top:8px">
+        <a class="btn btn-ghost" href="/download/bqe-core-data.json" download>Everything (JSON)</a>
+      </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+        <button class="btn btn-refetch" id="btnReexport"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>Refetch export</button>
       </div>
     </div>
   </section>
@@ -262,6 +296,7 @@
     $('connectedView').hidden  = false;
     $('endpointDisplay').textContent = endpoint || '(endpoint not returned)';
     $('stepFetch').hidden = false;
+    $('stepExport').hidden = false;
   }
 
   function showDisconnected(){
@@ -272,6 +307,7 @@
     $('connectedView').hidden  = true;
     $('stepFetch').hidden  = true;
     $('stepBuild').hidden  = true;
+    $('stepExport').hidden = true;
   }
 
   // ── connect ──────────────────────────────────────────────────────────────
@@ -320,62 +356,91 @@
     history.replaceState({}, '', '/');
   }
 
-  // ── Step 2: fetch ────────────────────────────────────────────────────────
-  function startFetch(){
-    $('fetchIdle').hidden    = true;
-    $('fetchRunning').hidden = false;
-    $('fetchDone').hidden    = true;
-    $('fetchErr').hidden     = true;
-    $('fetchBarFill').style.width = '0%';
-    $('fetchMsg').textContent = 'Starting…';
+  // ── fetch jobs ───────────────────────────────────────────────────────────
+  // Runs a server fetch job (archive or export) and drives one progress panel.
+  // `ui` is the element-id prefix of the panel: fetch* or export*.
+  function runJob(job, ui, onDone){
+    const el = name => $(ui + name);
+    el('Idle').hidden    = true;
+    el('Running').hidden = false;
+    el('Done').hidden    = true;
+    el('Err').hidden     = true;
+    el('BarFill').style.width = '0%';
+    el('Msg').textContent = 'Starting…';
 
-    const es = new EventSource('/fetch');
+    const es = new EventSource('/fetch?job=' + job);
 
     es.addEventListener('progress', e => {
       const d = JSON.parse(e.data);
-      $('fetchMsg').textContent = d.msg;
-      if(d.pct !== undefined) $('fetchBarFill').style.width = d.pct + '%';
+      el('Msg').textContent = d.msg;
+      if(d.pct !== undefined) el('BarFill').style.width = d.pct + '%';
     });
 
     es.addEventListener('done', e => {
       es.close();
-      const d = JSON.parse(e.data);
-      _fetchedData = d;
-      $('fetchBarFill').style.width = '100%';
-      $('fetchRunning').hidden = true;
-      $('fetchDone').hidden = false;
-      const c = d.counts;
-      const fetchedAt = new Date().toLocaleString(undefined, {dateStyle:'medium',timeStyle:'short'});
-      $('fetchSummary').innerHTML =
-        '<b>Fetch complete.</b> ' +
-        c.rootProjects.toLocaleString() + ' projects · ' +
-        c.timeEntries.toLocaleString() + ' time entries · ' +
-        c.expenseEntries.toLocaleString() + ' expense entries · ' +
-        c.invoices.toLocaleString() + ' invoices' +
-        '<br><span style="font-weight:400;color:#2d7a48">Last fetched ' + fetchedAt + '</span>';
-      populateReview(d.projects);
-      $('stepBuild').hidden = false;
+      el('BarFill').style.width = '100%';
+      el('Running').hidden = true;
+      el('Done').hidden = false;
+      onDone(JSON.parse(e.data));
     });
 
     es.addEventListener('error', e => {
       es.close();
       let msg = 'Fetch failed — check the terminal for details.';
       try { msg = JSON.parse(e.data).msg; } catch(x){}
-      $('fetchRunning').hidden = true;
-      $('fetchIdle').hidden = false;
-      $('fetchErr').textContent = msg;
-      $('fetchErr').hidden = false;
+      el('Running').hidden = true;
+      el('Idle').hidden = false;
+      el('Err').textContent = msg;
+      el('Err').hidden = false;
     });
 
     es.onerror = () => {};
   }
 
+  const fetchedAtLine = () =>
+    '<br><span style="font-weight:400;color:#2d7a48">Last fetched ' +
+    new Date().toLocaleString(undefined, {dateStyle:'medium',timeStyle:'short'}) + '</span>';
+
+  // ── Step 2: archive fetch ────────────────────────────────────────────────
+  function startFetch(){
+    runJob('archive', 'fetch', d => {
+      _fetchedData = d;
+      _fetchedData.fetchedAt = new Date();  // the archive's "current as of" date
+      const c = d.counts;
+      $('fetchSummary').innerHTML =
+        '<b>Fetch complete.</b> ' +
+        c.rootProjects.toLocaleString() + ' projects · ' +
+        c.timeEntries.toLocaleString() + ' time entries · ' +
+        c.expenseEntries.toLocaleString() + ' expense entries · ' +
+        c.invoices.toLocaleString() + ' invoices' +
+        fetchedAtLine();
+      populateReview(d.projects);
+      $('stepBuild').hidden = false;
+    });
+  }
+
   $('btnFetch').addEventListener('click', startFetch);
   $('btnRefetch').addEventListener('click', () => {
-    $('fetchDone').hidden = true;
     $('stepBuild').hidden = true;
     startFetch();
   });
+
+  // ── Raw data export ──────────────────────────────────────────────────────
+  function startExport(){
+    runJob('export', 'export', d => {
+      $('exportSummary').innerHTML =
+        '<b>Export ready.</b> ' +
+        d.counts.map(([label, n]) => n.toLocaleString() + ' ' + esc(label)).join(' · ') +
+        (d.skipped.length
+          ? '<br><span style="font-weight:400;color:#a8661a">Not available from your BQE account (skipped): ' +
+            d.skipped.map(esc).join(', ') + '</span>'
+          : '') +
+        fetchedAtLine();
+    });
+  }
+
+  $('btnExport').addEventListener('click', startExport);
+  $('btnReexport').addEventListener('click', startExport);
 
   // ── Step 3: review ───────────────────────────────────────────────────────
   function populateReview(projects){
@@ -450,6 +515,7 @@
       .replace(/__ACCENT_SOFT__/g, () => accentSoft)
       .replace('__BRAND_LOCKUP__', () => brandLockup)
       .replace(/__TITLE__/g,       () => esc(title))
+      .replace('__ASOF__',         () => esc(_fetchedData.fetchedAt.toLocaleDateString(undefined, {dateStyle:'long'})))
       .replace('__PROJECTS__',     () => safeJson);
 
     const slug = firm.replace(/[^a-z0-9]/gi,'-').replace(/-+/g,'-').toLowerCase();

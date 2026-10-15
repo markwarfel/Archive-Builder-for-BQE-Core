@@ -29,9 +29,9 @@ _expenses = []
 _invoices = []
 
 
-def _project(pid, name, level, parent, contract, ctype, year):
+def _project(pid, name, level, parent, contract, ctype, year, client=None):
     _projects.append({
-        "id": pid, "name": name, "level": level, "parentId": parent,
+        "id": pid, "name": name, "level": level, "parentId": parent, "client": client,
         "contractAmount": contract, "contractType": ctype,
         "startDate": f"{year}-03-15T00:00:00",
     })
@@ -63,7 +63,8 @@ def _invoice(pid, amount, extra_service=0, extra_expense=0):
 
 
 # Project 1 — a healthy, profitable multi-phase project spanning several years.
-_project("p1", "2101 Riverside Park Restoration", 0, None, 240000, 1, 2021)
+_project("p1", "2101 Riverside Park Restoration", 0, None, 240000, 1, 2021,
+         client="Riverside Parks Department")
 _project("p1-sd", "Schematic Design", 1, "p1", 48000, 1, 2021)
 _project("p1-dd", "Design Development", 1, "p1", 72000, 1, 2022)
 _project("p1-cd", "Construction Documents", 1, "p1", 120000, 1, 2023)
@@ -82,7 +83,8 @@ _invoice("p1-dd", 72000)
 _invoice("p1-cd", 108000)  # partially billed
 
 # Project 2 — an older residence; the CA phase ran over budget (a loss).
-_project("p2", "1906 Hillcrest Residence", 0, None, 60000, 1, 2019)
+_project("p2", "1906 Hillcrest Residence", 0, None, 60000, 1, 2019,
+         client="Hartley Family")
 _project("p2-sd", "Schematic Design", 1, "p2", 40000, 1, 2019)
 _project("p2-ca", "Construction Administration", 1, "p2", 20000, 2, 2020)
 _time_entry("p2-sd", 20, 220, 140, PRINCIPAL)
@@ -95,7 +97,8 @@ _invoice("p2-sd", 40000)
 _invoice("p2-ca", 20000)
 
 # Project 3 — an hourly project with no fixed contract (shows "Hourly — open to view").
-_project("p3", "2308 Civic Plaza Concept Study", 0, None, 0, 0, 2023)
+_project("p3", "2308 Civic Plaza Concept Study", 0, None, 0, 0, 2023,
+         client="Downtown Civic Partners")
 _project("p3-study", "Feasibility Study", 1, "p3", 0, 0, 2023)
 _time_entry("p3-study", 18, 235, 150, PRINCIPAL)
 _time_entry("p3-study", 46, 165, 104, PM)
@@ -106,6 +109,7 @@ _invoice("p3-study", 14200)
 FIRM = "Meridian Design Studio"
 TITLE = "Project Performance Archive"
 ACCENT = "#2d6a5c"
+AS_OF = "June 30, 2026"  # stands in for the fetch date; fixed so rebuilds don't churn
 
 
 def _esc(s):
@@ -138,6 +142,7 @@ def main():
         ("__ACCENT_SOFT__", _hex_soft(ACCENT)),
         ("__BRAND_LOCKUP__", brand_lockup),
         ("__TITLE__",       _esc(TITLE)),
+        ("__ASOF__",        _esc(AS_OF)),
         ("__PROJECTS__",    safe_json),
     ]:
         html = html.replace(token, value)

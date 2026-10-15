@@ -3,7 +3,8 @@
 A small local tool that reads your firm's project, time, expense, and invoice
 data **directly from the BQE Core API** and builds a **self-contained HTML
 archive** of historical project performance — one file you can open in any
-browser, keep offline, and hand to anyone.
+browser, keep offline, and hand to anyone. Separately, it can export a complete
+raw copy of your Core data (CSV and JSON) to keep or import elsewhere.
 
 It was built to preserve project history when moving off BQE Core, and it
 bypasses Core's "Export as CSV," which silently truncates large pulls.
@@ -30,7 +31,9 @@ expandable phases, inflation adjustment, and optional performance columns.*
    - **Cost** — all time × cost rate plus all expense costs.
    - **Hours by role** — total hours bucketed by staff classification (falls back to bill rate when unclassified).
 4. **Builds** a branded, standalone archive HTML file with the data baked in.
-5. Optionally **exports** the raw fetched data as CSV for a full data dump.
+5. Separately and optionally, **exports** raw data — complete records, every field,
+   plus clients, contacts, payments, vendor bills, notes, activities, and expense
+   items — as CSV files and a single JSON file.
 
 The generated archive needs no server and no internet — all data and logic are
 embedded in the single file.
@@ -60,7 +63,7 @@ in your browser. Press `Ctrl+C` to stop it.
 > in `auth.py` (`PORT`) and re-register the redirect URI to match.
 
 Once running, the builder walks you through three steps: **Connect → Fetch →
-Review & build.**
+Review & build.** The raw data export is a separate section with its own fetch.
 
 ### Preview without connecting
 
@@ -121,10 +124,15 @@ correct, don't look for one.
 > trailing slash, the port, and capitalization all count. A mismatch produces an
 > error page instead of a login screen.
 
-The tool requests two scopes when you connect:
+The tool requests one scope when you connect:
 
 - **`read:core`** — read-only access; it can never change anything in Core.
-- **`offline_access`** — lets it refresh quietly so you're not re-logging in each run.
+
+BQE only issues refresh tokens (`offline_access`) to Regular Web Apps, which
+require a client secret — Native Apps get `invalid_scope` — so there's no refresh
+token and each login lasts about an hour. The builder won't start a fetch
+without enough login left to finish it (8 minutes for the archive, 20 for the
+export) — it asks you to reconnect first, which takes a few seconds.
 
 ### Part 3 — Connect
 
@@ -141,8 +149,9 @@ local to this folder, so you stay connected across restarts.
 
 ## Using the builder
 
-**Step 2 — Fetch.** Click **Fetch all data**. For 15 years of history this
-typically takes 1–4 minutes.
+**Step 2 — Fetch archive data.** Click **Fetch archive data**. Only the fields the
+archive needs are pulled; for 15 years of history (~70,000 time entries) this
+typically takes 2–4 minutes.
 
 ![Connected, ready to fetch](docs/builder-2-fetch.png)
 
@@ -151,7 +160,11 @@ typically takes 1–4 minutes.
 - **Projects to include** — check/uncheck which projects go into the archive.
 - **Brand** — firm name, archive title, and accent color.
 - **Build & download archive** — produces `your-firm-archive-YYYY-MM-DD.html`.
-- **Export raw data** — download the raw fetched records as CSV (see below).
+
+**Export raw data** (separate section) — click **Fetch full export** to pull
+complete records for every dataset, then download them as CSV or JSON (see
+below). This is independent of the archive and can run at the same time; expect
+5–15 minutes.
 
 ---
 
@@ -159,7 +172,8 @@ typically takes 1–4 minutes.
 
 Open the downloaded HTML file in any browser — no server needed. Features:
 
-- **Search** by project name or number.
+- **"Data current as of" date** under the title — when the data was fetched from Core.
+- **Search** by project name, client, or number. Each project shows its client.
 - **Expandable phases** with Contract, Contract billed, Budget spent, Cost, and a Margin bar.
 - **Inflation adjustment** — toggle "Show today's dollars" to restate historical
   figures using the Producer Price Index for Architectural, Engineering, and
@@ -177,17 +191,37 @@ Open the downloaded HTML file in any browser — no server needed. Features:
 
 ## Raw CSV export
 
-The **Export raw data** buttons in Step 3 download the raw records from your most
-recent fetch, one file per dataset:
+After **Fetch full export** finishes, the **Export raw data** section offers the raw
+records — every field BQE returns, not just the ones the archive uses — one file
+per dataset:
 
 - `projects.csv`
-- `time-entries.csv`
+- `time-entries.csv` — includes date, description, activity, and staff.
 - `expenses.csv`
-- `invoices.csv` — flattened to **one row per invoice detail line**.
+- `invoices.csv` — flattened to **one row per invoice detail line** (detail fields prefixed `detail_`).
+- `payments.csv` — one row per payment line, showing which invoice each payment applied to (prefixed `line_`).
+- `vendor-bills.csv` — one row per bill line / expense item (prefixed `line_`).
+- `clients.csv`, `contacts.csv` — default address, email, and phone pulled out into their own columns.
+- `notes.csv`
+- `activities.csv`, `expense-items.csv` — service and expense codes, including inactive ones.
 
-Time-entry, expense, and invoice rows are enriched with leading `project_name`
-and `phase_name` columns so you don't have to resolve project ID UUIDs by hand.
-Files are UTF-8 with a BOM so Excel opens them cleanly.
+Time-entry, expense, invoice, payment, and vendor-bill rows are enriched with
+leading `project_name` and `phase_name` columns so you don't have to resolve
+project ID UUIDs by hand. Nested values (custom fields, account splits, full
+address lists) are written as JSON. Files are UTF-8 with a BOM so Excel opens
+them cleanly.
+
+**Everything (JSON)** downloads `bqe-core-data.json`: every record from every
+dataset exactly as BQE returned it, nested data intact. It's large (~150 MB for
+15 years) but is the most complete copy.
+
+If your Core account doesn't permit one of the export-only datasets, the export
+skips it and says so; the archive itself only needs projects, time, expenses,
+and invoices.
+
+**Not available through the API** — export these from Core directly if you need
+them: accounting (checks, deposits, chart of accounts, GL), printed invoice PDFs,
+and attached documents.
 
 ---
 
@@ -204,7 +238,7 @@ Files are UTF-8 with a BOM so Excel opens them cleanly.
 
 - The server listens only on `127.0.0.1` (localhost) — it is not exposed to your
   network. Don't put it behind a public proxy or bind it to `0.0.0.0`.
-- `tokens.json` stores your OAuth access/refresh tokens **unencrypted**. Treat it
+- `tokens.json` stores your OAuth access token **unencrypted**. Treat it
   like a password: don't commit it, and avoid running the tool on a shared or
   untrusted machine. It is already listed in `.gitignore`.
 - Your BQE Client ID (in `config.json`) is not a secret for a Native/PKCE app,
@@ -217,12 +251,13 @@ Files are UTF-8 with a BOM so Excel opens them cleanly.
 - **Error page right after login / "redirect_uri mismatch"** → the registered
   Redirect URI doesn't exactly match `http://127.0.0.1:8080/callback`. Recheck
   `http` vs `https`, `127.0.0.1` vs `localhost`, trailing slash, and port.
-- **`invalid_scope`** → the app must be allowed the `read:core` scope.
+- **`invalid_scope`** → the app must be allowed the `read:core` scope. (If you
+  added `offline_access` to `auth.py`: Native Apps can't use it — remove it.)
 - **"App can only interact with companies with a valid subscription"** →
   expected; the Core company needs an active paid subscription.
-- **It worked, then stopped after ~1 hour** → access tokens last about an hour.
-  The refresh token (from *offline access*) renews it automatically; if you
-  declined offline access, just reconnect.
+- **It worked, then stopped after ~1 hour** / **"Your BQE login expires in N
+  minutes"** → logins last about an hour. Click **Disconnect**, connect again,
+  then fetch.
 - **A phase's Budget spent differs slightly from Core** → some very old entries
   aren't reachable through the API; the archive notes this in the column tooltip.
 
@@ -247,12 +282,13 @@ That said, it's MIT-licensed and yours to build on:
 | File | Role |
 |---|---|
 | `server.py` | Starts the local HTTP server. |
-| `handler.py` | Request routing: OAuth, `/fetch` (SSE progress), `/download/*.csv`. |
+| `handler.py` | Request routing: OAuth, `/fetch?job=archive\|export` (SSE progress), `/download/*`. |
 | `auth.py` | OAuth PKCE flow, token/config storage. |
 | `bqe.py` | Paginated BQE API client. |
 | `join.py` | Aggregates T&E + invoices into the project → phase tree. |
 | `index.html` | The builder UI. |
 | `archive-template.html` / `archive-template.css` | Template for the generated archive (data injected at build time). |
+| `build_sample.py` | Builds `sample-archive.html` from fictional data — no BQE account needed. |
 
 BQE Core® and BQE® are trademarks of BQE Software, Inc. This tool is an
 independent, unofficial utility — not created, endorsed, or affiliated with BQE

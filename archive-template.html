@@ -14,6 +14,7 @@
             <div class="title-block">
                 <div class="eyebrow">Historical project archive</div>
                 <h1>__TITLE__</h1>
+                <div class="asof">Data current as of __ASOF__</div>
             </div>
 
             <div class="infl" role="group" aria-label="Inflation adjustment">
@@ -114,7 +115,7 @@
                     <input
                         type="text"
                         id="search"
-                        placeholder="Search by project name or number…"
+                        placeholder="Search by project, client, or number…"
                         autocomplete="off"
                     />
                 </div>
@@ -491,6 +492,13 @@
                     '</td></tr></tfoot></table></div><div class="scroll-fade"></div></div></div>'
                 );
             }
+            function escapeHtml(s) {
+                return String(s)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+            }
             function renderList() {
                 const list = document.getElementById("list");
                 const visible = PROJECTS.filter((p) => {
@@ -498,12 +506,13 @@
                     return (
                         !q ||
                         p.name.toLowerCase().includes(q) ||
+                        (p.client || "").toLowerCase().includes(q) ||
                         p.num.toLowerCase().includes(q)
                     );
                 });
                 if (!visible.length) {
                     list.innerHTML =
-                        '<div class="empty"><b>No projects match.</b> Try a different name or number.</div>';
+                        '<div class="empty"><b>No projects match.</b> Try a different name, client, or number.</div>';
                     return;
                 }
                 list.innerHTML = visible
@@ -524,6 +533,11 @@
                             p.name +
                             "</span>" +
                             '<span class="proj-meta">' +
+                            (p.client
+                                ? '<span class="proj-client">' +
+                                  escapeHtml(p.client) +
+                                  "</span> · "
+                                : "") +
                             p.phases.length +
                             " phase" +
                             (p.phases.length !== 1 ? "s" : "") +
@@ -665,6 +679,12 @@
                 .addEventListener("keydown", (e) => {
                     if (e.key === "Enter") applyManual();
                 });
+            // Only advertise client search when the data carries client names
+            // (archives built from older fetches don't).
+            if (!PROJECTS.some((p) => p.client)) {
+                document.getElementById("search").placeholder =
+                    "Search by project name or number…";
+            }
             document.getElementById("search").addEventListener("input", (e) => {
                 state.search = e.target.value;
                 renderList();

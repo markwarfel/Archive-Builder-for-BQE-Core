@@ -258,6 +258,7 @@ def join_data(projects: list, time_entries: list,
         result.append({
             "num":    project_num(root),
             "name":   root["name"],
+            "client": root.get("client") or "",
             "phases": phase_list,
         })
 

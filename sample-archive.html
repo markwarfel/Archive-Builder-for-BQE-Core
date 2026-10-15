@@ -29,6 +29,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:
 .title-block{padding:24px 0 0}
 .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600}
 h1{font-size:26px;letter-spacing:-.01em;margin:4px 0 0;font-weight:650}
+.asof{font-size:13px;color:var(--muted);margin-top:6px}
 
 .infl{margin-top:20px;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:14px 22px;flex-wrap:wrap}
 .infl-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
@@ -73,6 +74,7 @@ button{font-family:var(--sans);cursor:pointer}
 .proj-id-block{display:flex;flex-direction:column;gap:4px;min-width:0}
 .proj-name{font-size:16px;font-weight:600;letter-spacing:-.005em}
 .proj-meta{font-size:12.5px;color:var(--muted)}
+.proj-client{color:var(--ink-soft);font-weight:500}
 .proj-totals{text-align:right;display:flex;flex-direction:column;gap:5px;min-width:170px}
 .proj-money .h{font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .proj-money .a{font-family:var(--mono);font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
@@ -180,6 +182,7 @@ body.show-spent-pct .col-spent-pct{display:table-cell}
             <div class="title-block">
                 <div class="eyebrow">Historical project archive</div>
                 <h1>Project Performance Archive</h1>
+                <div class="asof">Data current as of June 30, 2026</div>
             </div>
 
             <div class="infl" role="group" aria-label="Inflation adjustment">
@@ -280,7 +283,7 @@ body.show-spent-pct .col-spent-pct{display:table-cell}
                     <input
                         type="text"
                         id="search"
-                        placeholder="Search by project name or number…"
+                        placeholder="Search by project, client, or number…"
                         autocomplete="off"
                     />
                 </div>
@@ -361,7 +364,7 @@ body.show-spent-pct .col-spent-pct{display:table-cell}
             };
             const DEFAULT_YEAR = 2025;
 
-            const PROJECTS = [{"num": "2101", "name": "2101 Riverside Park Restoration", "phases": [{"phase": "Schematic Design", "bill": "fixed", "yr": 2021, "contract": 48000, "billed": 48000.0, "spent": 34340.0, "cost": 21600.0, "hours": 244.0, "role_buckets": [["Landscape Designer", 120.0], ["Project Manager", 60.0], ["Drafter", 40.0], ["Principal", 24.0]]}, {"phase": "Design Development", "bill": "fixed", "yr": 2022, "contract": 72000, "billed": 72000.0, "spent": 59850.0, "cost": 37620.0, "hours": 450.0, "role_buckets": [["Landscape Designer", 220.0], ["Drafter", 110.0], ["Project Manager", 90.0], ["Principal", 30.0]]}, {"phase": "Construction Documents", "bill": "fixed", "yr": 2023, "contract": 120000, "billed": 108000.0, "spent": 98180.0, "cost": 61760.0, "hours": 760.0, "role_buckets": [["Landscape Designer", 300.0], ["Drafter", 260.0], ["Project Manager", 160.0], ["Principal", 40.0]]}]}, {"num": "1906", "name": "1906 Hillcrest Residence", "phases": [{"phase": "Schematic Design", "bill": "fixed", "yr": 2019, "contract": 40000, "billed": 40000.0, "spent": 14000.0, "cost": 8800.0, "hours": 100.0, "role_buckets": [["Landscape Designer", 80.0], ["Principal", 20.0]]}, {"phase": "Construction Administration", "bill": "hourly", "yr": 2020, "contract": 20000, "billed": 20000.0, "spent": 31160.0, "cost": 19700.0, "hours": 210.0, "role_buckets": [["Landscape Designer", 140.0], ["Principal", 60.0], ["Drafter", 10.0]]}]}, {"num": "2308", "name": "2308 Civic Plaza Concept Study", "phases": [{"phase": "Feasibility Study", "bill": "hourly", "yr": 2023, "contract": 0, "billed": 14200.0, "spent": 15570.0, "cost": 9824.0, "hours": 94.0, "role_buckets": [["Project Manager", 46.0], ["Landscape Designer", 30.0], ["Principal", 18.0]]}]}];
+            const PROJECTS = [{"num": "2101", "name": "2101 Riverside Park Restoration", "client": "Riverside Parks Department", "phases": [{"phase": "Schematic Design", "bill": "fixed", "yr": 2021, "contract": 48000, "billed": 48000.0, "spent": 34340.0, "cost": 21600.0, "hours": 244.0, "role_buckets": [["Landscape Designer", 120.0], ["Project Manager", 60.0], ["Drafter", 40.0], ["Principal", 24.0]]}, {"phase": "Design Development", "bill": "fixed", "yr": 2022, "contract": 72000, "billed": 72000.0, "spent": 59850.0, "cost": 37620.0, "hours": 450.0, "role_buckets": [["Landscape Designer", 220.0], ["Drafter", 110.0], ["Project Manager", 90.0], ["Principal", 30.0]]}, {"phase": "Construction Documents", "bill": "fixed", "yr": 2023, "contract": 120000, "billed": 108000.0, "spent": 98180.0, "cost": 61760.0, "hours": 760.0, "role_buckets": [["Landscape Designer", 300.0], ["Drafter", 260.0], ["Project Manager", 160.0], ["Principal", 40.0]]}]}, {"num": "1906", "name": "1906 Hillcrest Residence", "client": "Hartley Family", "phases": [{"phase": "Schematic Design", "bill": "fixed", "yr": 2019, "contract": 40000, "billed": 40000.0, "spent": 14000.0, "cost": 8800.0, "hours": 100.0, "role_buckets": [["Landscape Designer", 80.0], ["Principal", 20.0]]}, {"phase": "Construction Administration", "bill": "hourly", "yr": 2020, "contract": 20000, "billed": 20000.0, "spent": 31160.0, "cost": 19700.0, "hours": 210.0, "role_buckets": [["Landscape Designer", 140.0], ["Principal", 60.0], ["Drafter", 10.0]]}]}, {"num": "2308", "name": "2308 Civic Plaza Concept Study", "client": "Downtown Civic Partners", "phases": [{"phase": "Feasibility Study", "bill": "hourly", "yr": 2023, "contract": 0, "billed": 14200.0, "spent": 15570.0, "cost": 9824.0, "hours": 94.0, "role_buckets": [["Project Manager", 46.0], ["Landscape Designer", 30.0], ["Principal", 18.0]]}]}];
 
             const state = {
                 level: PPI_AE[DEFAULT_YEAR],
@@ -657,6 +660,13 @@ body.show-spent-pct .col-spent-pct{display:table-cell}
                     '</td></tr></tfoot></table></div><div class="scroll-fade"></div></div></div>'
                 );
             }
+            function escapeHtml(s) {
+                return String(s)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+            }
             function renderList() {
                 const list = document.getElementById("list");
                 const visible = PROJECTS.filter((p) => {
@@ -664,12 +674,13 @@ body.show-spent-pct .col-spent-pct{display:table-cell}
                     return (
                         !q ||
                         p.name.toLowerCase().includes(q) ||
+                        (p.client || "").toLowerCase().includes(q) ||
                         p.num.toLowerCase().includes(q)
                     );
                 });
                 if (!visible.length) {
                     list.innerHTML =
-                        '<div class="empty"><b>No projects match.</b> Try a different name or number.</div>';
+                        '<div class="empty"><b>No projects match.</b> Try a different name, client, or number.</div>';
                     return;
                 }
                 list.innerHTML = visible
@@ -690,6 +701,11 @@ body.show-spent-pct .col-spent-pct{display:table-cell}
                             p.name +
                             "</span>" +
                             '<span class="proj-meta">' +
+                            (p.client
+                                ? '<span class="proj-client">' +
+                                  escapeHtml(p.client) +
+                                  "</span> · "
+                                : "") +
                             p.phases.length +
                             " phase" +
                             (p.phases.length !== 1 ? "s" : "") +
@@ -831,6 +847,12 @@ body.show-spent-pct .col-spent-pct{display:table-cell}
                 .addEventListener("keydown", (e) => {
                     if (e.key === "Enter") applyManual();
                 });
+            // Only advertise client search when the data carries client names
+            // (archives built from older fetches don't).
+            if (!PROJECTS.some((p) => p.client)) {
+                document.getElementById("search").placeholder =
+                    "Search by project name or number…";
+            }
             document.getElementById("search").addEventListener("input", (e) => {
                 state.search = e.target.value;
                 renderList();

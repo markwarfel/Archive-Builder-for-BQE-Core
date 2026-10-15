@@ -13,15 +13,18 @@ it dependency-free — do not add third-party packages.
 
 - `server.py` — starts the local HTTP server on **127.0.0.1:8080** (the address
   must match the OAuth redirect URI in `auth.py`; don't change one without the other).
-- `handler.py` — request routing: OAuth endpoints, `/fetch` (streams the four
-  datasets over SSE), `/download/*.csv` (raw exports from an in-memory cache).
+- `handler.py` — request routing: OAuth endpoints, `/fetch?job=…` (SSE progress),
+  `/download/*.csv` and `/download/bqe-core-data.json`. Two independent fetch jobs:
+  `archive` pulls the four required datasets restricted to `ARCHIVE_FIELDS` (fast) and
+  returns the `join.py` tree; `export` pulls every dataset in `DATASETS` as full
+  records into the in-memory cache the downloads read from.
 - `auth.py` — OAuth PKCE flow; stores tokens in `tokens.json`, client id in `config.json`.
 - `bqe.py` — paginated BQE API client.
 - `join.py` — aggregates time/expense/invoice records into a project → phase tree.
 - `index.html` — the builder UI.
 - `archive-template.html` / `archive-template.css` — template for the generated
   archive. The builder injects data by string-replacing placeholders
-  (`__PROJECTS__`, `__STYLES__`, `__ACCENT__`, `__TITLE__`, …). `__STYLES__` must
+  (`__PROJECTS__`, `__STYLES__`, `__ACCENT__`, `__TITLE__`, `__ASOF__`, …). `__STYLES__` must
   be replaced **before** `__ACCENT__`, because the CSS itself contains `__ACCENT__`.
   Embedded JSON escapes `</` as `<\/` so it can't close the `<script>` block.
 - `build_sample.py` — builds `sample-archive.html` from fake data, mirroring the
@@ -55,6 +58,10 @@ python3 build_sample.py                                             # rebuild th
 # open sample-archive.html in a browser to check the template renders
 python3 server.py                                                   # smoke-test the full flow
 ```
+
+The server imports the Python modules once at startup — restart it after any
+`.py` change. HTML/CSS (builder and archive template) are read from disk on every
+request, so a browser reload picks those up.
 
 For archive-template.html JS changes, syntax-check the embedded script by extracting
 it, replacing `__PROJECTS__` with `[]`, and running `node --check`.
